@@ -575,9 +575,8 @@ async function deleteCliente(id) {
 
 // ===== PROYECTOS =====
 async function loadProyectosSelect(selectId) {
-    const proyectos = await supabase.from('proyectos')
-        .select('*, clientes(nombre)')
-        .then(r => r?.data || []);
+    const { data: proyectos } = await supabase.from('proyectos')
+        .select('*, clientes(nombre)');
 
     const select = document.getElementById(selectId);
 
@@ -595,9 +594,8 @@ async function loadProyectosSelect(selectId) {
 }
 
 async function loadProyectosTabla() {
-    const proyectos = await supabase.from('proyectos')
-        .select('*, clientes(nombre)')
-        .then(r => r?.data || []);
+    const { data: proyectos } = await supabase.from('proyectos')
+        .select('*, clientes(nombre)');
 
     const tableEl = document.getElementById('proyectos-table');
 
@@ -781,9 +779,8 @@ function sugerirCategoriaGasto(descripcion) {
 
 // ===== GESTIONAR =====
 async function loadIngresosLista() {
-    const ingresos = await supabase.from('ingresos')
-        .select('*, clientes(nombre), proyectos(nombre_proyecto)')
-        .then(r => r?.data || []);
+    const { data: ingresos } = await supabase.from('ingresos')
+        .select('*, clientes(nombre), proyectos(nombre_proyecto)');
 
     const container = document.getElementById('lista-ingresos');
 
@@ -819,7 +816,7 @@ async function loadIngresosLista() {
 }
 
 async function loadGastosLista() {
-    const { data: gastos } = await supabase.from('gastos').select('*').then(r => r?.data || []);
+    const { data: gastos } = await supabase.from('gastos').select('*');
 
     const container = document.getElementById('lista-gastos');
 
@@ -879,8 +876,8 @@ async function eliminarGasto(id) {
 
 // ===== DEUDAS =====
 async function loadDeudasLista() {
-    const { data: deudas } = await supabase.from('deudas').select('*').then(r => r?.data || []);
-    const { data: pagos } = await supabase.from('pagos_deudas').select('*').then(r => r?.data || []);
+    const { data: deudas } = await supabase.from('deudas').select('*');
+    const { data: pagos } = await supabase.from('pagos_deudas').select('*');
 
     const container = document.getElementById('lista-deudas');
 
@@ -1016,9 +1013,8 @@ async function registrarPagoDeuda(deudaId, e) {
 
 // ===== SESIONES =====
 async function loadSesionesTabla() {
-    const sesiones = await supabase.from('sesiones')
-        .select('*, clientes(nombre), proyectos(nombre_proyecto)')
-        .then(r => r?.data || []);
+    const { data: sesiones } = await supabase.from('sesiones')
+        .select('*, clientes(nombre), proyectos(nombre_proyecto)');
 
     const tableEl = document.getElementById('sesiones-table');
 
@@ -1074,7 +1070,8 @@ async function handleSesionSubmit(e) {
 
     // Generar código de sesión
     const cliente = clienteSelect.options[clienteSelect.selectedIndex]?.text || nuevoClienteInput.value;
-    const contador = (await supabase.from('sesiones').select('id').then(r => r?.length || 0)) + 1;
+    const { data: sesionesCount } = await supabase.from('sesiones').select('id');
+    const contador = (sesionesCount?.length || 0) + 1;
     const codigo = generarCodigoSesion(cliente, document.getElementById('sesion-objetivo').value || 'Sesion', contador);
 
     const sesion = {
@@ -1118,9 +1115,8 @@ function generarCodigoSesion(clienteNombre, objetivo, contador) {
 
 // ===== REPORTES =====
 async function loadReporteProyectos() {
-    const proyectos = await supabase.from('proyectos')
-        .select('*, clientes(nombre)')
-        .then(r => r?.data || []);
+    const { data: proyectos } = await supabase.from('proyectos')
+        .select('*, clientes(nombre)');
 
     const { data: ingresos } = await supabase.from('ingresos').select('proyecto_id, monto');
 
@@ -1364,7 +1360,8 @@ async function handleProyectoSubmit(e) {
 
     // Generar código
     const cliente = clienteSelect.options[clienteSelect.selectedIndex]?.text || nuevoClienteInput.value;
-    const contador = (await supabase.from('proyectos').select('id').then(r => r?.length || 0)) + 1;
+    const { data: proyectosCount } = await supabase.from('proyectos').select('id');
+    const contador = (proyectosCount?.length || 0) + 1;
     const codigo = generarCodigoSesion(cliente, nombreProyecto, contador);
 
     const proyecto = {
@@ -1439,3 +1436,5 @@ init();
 
 // ===== GLOBAL FUNCTIONS (for onclick handlers) =====
 window.deleteCliente = deleteCliente;
+liente = deleteCliente;
+liente = deleteCliente;
