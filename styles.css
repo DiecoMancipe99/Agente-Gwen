@@ -325,6 +325,29 @@ body {
     color: var(--color-yellow);
 }
 
+.btn-catalogo {
+    display: block;
+    font-family: var(--font-body);
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(249, 247, 220, 0.1);
+    color: var(--color-cream);
+    text-decoration: none;
+    text-align: center;
+    border-radius: var(--radius-sm);
+    transition: all 0.2s;
+    margin-top: 0.5rem;
+}
+
+.btn-catalogo:hover {
+    border-color: var(--color-yellow);
+    background: rgba(249, 247, 220, 0.2);
+    color: var(--color-yellow);
+}
+
 /* ===== MAIN CONTENT ===== */
 .main-content {
     flex: 1;
@@ -758,4 +781,51 @@ body {
     height: 100%;
     background: var(--color-primary);
     transition: width 0.3s;
+}
+
+/* ===== CLIENTES ===== */
+.cliente-item {
+    background: rgba(249, 247, 220, 0.3);
+    border: 1px solid rgba(94, 28, 46, 0.1);
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.cliente-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.cliente-codigo {
+    font-family: var(--font-titles);
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--color-primary);
+    background: rgba(94, 28, 46, 0.1);
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--radius-sm);
+    min-width: 80px;
+    text-align: center;
+}
+
+.cliente-header h4 {
+    font-family: var(--font-titles);
+    font-size: 1.4rem;
+    flex: 1;
+}
+
+.cliente-detalles {
+    display: flex;
+    gap: 1.5rem;
+    font-size: 0.9rem;
+    opacity: 0.8;
+    margin-bottom: 1rem;
+}
+
+.cliente-actions {
+    display: flex;
+    gap: 0.5rem;
 }

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portafolio | Dieco Mancipe - Productor Musical & Ingeniero de Sonido</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Space+Mono:wght@300;400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="catalogo-styles.css">
+</head>
+<body>
+    <!-- Hero Header -->
+    <header class="catalogo-header">
+        <div class="header-content">
+            <div class="header-logo">DIECO<span class="light">MANCIPE</span></div>
+            <h1>Portafolio de Proyectos</h1>
+            <p class="header-subtitle">Productor Musical & Ingeniero de Sonido</p>
+            <div class="header-divider"></div>
+            <p class="header-description">Explora los proyectos en los que he tenido el privilegio de participar, desde la producción hasta la masterización.</p>
+        </div>
+    </header>
+
+    <!-- Filters -->
+    <section class="filters-section">
+        <div class="filters-container">
+            <div class="filter-group">
+                <label>Filtrar por Servicio:</label>
+                <div class="filter-buttons" id="servicio-filters">
+                    <button class="filter-btn active" data-servicio="todos">Todos</button>
+                    <button class="filter-btn" data-servicio="Producción">Producción</button>
+                    <button class="filter-btn" data-servicio="Grabación">Grabación</button>
+                    <button class="filter-btn" data-servicio="Mezcla">Mezcla</button>
+                    <button class="filter-btn" data-servicio="Masterización">Masterización</button>
+                    <button class="filter-btn" data-servicio="Ingeniero de Grabación">Ingeniero de Grabación</button>
+                </div>
+            </div>
+            <div class="filter-group">
+                <label>Filtrar por Año:</label>
+                <div class="filter-buttons" id="anio-filters">
+                    <button class="filter-btn active" data-anio="todos">Todos</button>
+                    <button class="filter-btn" data-anio="2026">2026</button>
+                    <button class="filter-btn" data-anio="2025">2025</button>
+                    <button class="filter-btn" data-anio="2024">2024</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Projects Grid -->
+    <section class="projects-section">
+        <div class="projects-grid" id="projects-grid">
+            <!-- Projects will be loaded here -->
+        </div>
+    </section>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="modal-overlay">
+        <div class="modal-content">
+            <button class="modal-close" id="modal-close">&times;</button>
+            <div class="modal-body">
+                <div class="modal-cover">
+                    <img id="modal-cover-art" src="" alt="Cover Art">
+                </div>
+                <div class="modal-info">
+                    <h2 id="modal-title"></h2>
+                    <p class="modal-artist" id="modal-artist"></p>
+                    <div class="modal-meta">
+                        <span class="modal-tag" id="modal-genero"></span>
+                        <span class="modal-tag" id="modal-anio"></span>
+                    </div>
+                    <div class="modal-services" id="modal-services"></div>
+                    <div class="modal-note" id="modal-note"></div>
+                    <div class="modal-spotify" id="modal-spotify"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="catalogo-footer">
+        <div class="footer-content">
+            <p>Dieco Mancipe © 2026</p>
+            <p>Productor Musical & Ingeniero de Sonido</p>
+            <div class="footer-links">
+                <a href="https://instagram.com/diecomancipe" target="_blank">Instagram</a>
+                <a href="https://tiktok.com/@diecomancipe" target="_blank">TikTok</a>
+                <a href="https://open.spotify.com/artist/diecomancipe" target="_blank">Spotify</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="catalogo-app.js"></script>
+</body>
+</html>
