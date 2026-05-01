@@ -15,16 +15,23 @@ let currentSection = 'dashboard';
 const supabase = createSupabaseClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 function createSupabaseClient(url, key) {
+    // Helper para obtener headers con token de autenticación
+    const getHeaders = () => {
+        const session = JSON.parse(localStorage.getItem('supabase_session') || 'null');
+        const token = session?.access_token || key;
+        return {
+            'apikey': key,
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        };
+    };
+
     return {
         from: (table) => ({
             select: (columns = '*') => ({
                 then: (callback) => {
                     fetch(`${url}/rest/v1/${table}?select=${columns}`, {
-                        headers: {
-                            'apikey': key,
-                            'Authorization': `Bearer ${key}`,
-                            'Content-Type': 'application/json'
-                        }
+                        headers: getHeaders()
                     })
                     .then(res => res.json())
                     .then(data => callback({ data, error: null }))
@@ -36,9 +43,7 @@ function createSupabaseClient(url, key) {
                     fetch(`${url}/rest/v1/${table}`, {
                         method: 'POST',
                         headers: {
-                            'apikey': key,
-                            'Authorization': `Bearer ${key}`,
-                            'Content-Type': 'application/json',
+                            ...getHeaders(),
                             'Prefer': 'return=representation'
                         },
                         body: JSON.stringify(data)
@@ -54,9 +59,7 @@ function createSupabaseClient(url, key) {
                         fetch(`${url}/rest/v1/${table}?${column}=eq.${value}`, {
                             method: 'PATCH',
                             headers: {
-                                'apikey': key,
-                                'Authorization': `Bearer ${key}`,
-                                'Content-Type': 'application/json',
+                                ...getHeaders(),
                                 'Prefer': 'return=representation'
                             },
                             body: JSON.stringify(data)
@@ -73,8 +76,7 @@ function createSupabaseClient(url, key) {
                         fetch(`${url}/rest/v1/${table}?${column}=eq.${value}`, {
                             method: 'DELETE',
                             headers: {
-                                'apikey': key,
-                                'Authorization': `Bearer ${key}`,
+                                ...getHeaders(),
                                 'Prefer': 'return=representation'
                             }
                         })
@@ -292,8 +294,8 @@ async function loadDashboard() {
 }
 
 async function loadBalanceGeneral() {
-    const ingresos = await supabase.from('ingresos').select('monto');
-    const gastos = await supabase.from('gastos').select('monto');
+    const { data: ingresos } = await supabase.from('ingresos').select('monto');
+    const { data: gastos } = await supabase.from('gastos').select('monto');
 
     const totalIngresos = (ingresos || []).reduce((sum, i) => sum + (parseFloat(i.monto) || 0), 0);
     const totalGastos = (gastos || []).reduce((sum, g) => sum + (parseFloat(g.monto) || 0), 0);
@@ -315,7 +317,7 @@ async function loadBalanceGeneral() {
 }
 
 async function loadGastosPorCategoria() {
-    const gastos = await supabase.from('gastos').select('categoria, monto');
+    const { data: gastos } = await supabase.from('gastos').select('categoria, monto');
 
     if (!gastos || gastos.length === 0) {
         document.getElementById('gastos-categorias-chart').innerHTML = '<p style="opacity:0.6">No hay gastos registrados</p>';
@@ -371,7 +373,7 @@ async function loadGastosPorCategoria() {
 
 async function loadUltimosMovimientos() {
     // Últimos ingresos
-    const ingresosResult = await supabase.from('ingresos')
+    const { data: ingresosResult } = await supabase.from('ingresos')
         .select('*, clientes(nombre), proyectos(nombre_proyecto)');
     const ingresos = (ingresosResult || []).slice(0, 5);
 
@@ -389,7 +391,7 @@ async function loadUltimosMovimientos() {
     }
 
     // Últimos gastos
-    const gastosResult = await supabase.from('gastos').select('*');
+    const { data: gastosResult } = await supabase.from('gastos').select('*');
     const gastos = (gastosResult || []).slice(0, 5);
 
     const gasEl = document.getElementById('ultimos-gastos');
@@ -408,14 +410,18 @@ async function loadUltimosMovimientos() {
 
 // ===== CLIENTES =====
 async function loadClientesSelect(selectId) {
-    const result = await supabase.from('clientes').select('*');
-    const clientes = result || [];
+    const { data: clientes, error } = await supabase.from('clientes').select('*');
     const select = document.getElementById(selectId);
 
     const existingOptions = select.querySelectorAll('option:not([value=""])');
     existingOptions.forEach(opt => opt.remove());
 
-    if (clientes) {
+    if (error) {
+        console.error('Error loading clientes:', error);
+        return;
+    }
+
+    if (clientes && Array.isArray(clientes)) {
         clientes.forEach(c => {
             const opt = document.createElement('option');
             opt.value = c.id;
@@ -426,9 +432,9 @@ async function loadClientesSelect(selectId) {
 }
 
 async function createCliente(nombre) {
-    const result = await supabase.from('clientes').insert({ nombre });
-    if (!result) throw new Error('Error al crear cliente');
-    return result[0] || result;
+    const { data, error } = await supabase.from('clientes').insert({ nombre });
+    if (error) throw new Error('Error al crear cliente: ' + error.message);
+    return data?.[0] || data;
 }
 
 // ===== CLIENTES =====
@@ -465,17 +471,21 @@ function generarInicialesUnicas(nombre, todosLosNombres, index) {
 }
 
 async function loadClientesLista() {
-    const result = await supabase.from('clientes').select('*');
-    const clientes = result || [];
-
+    const { data: clientes, error } = await supabase.from('clientes').select('*');
     const container = document.getElementById('lista-clientes');
 
-    if (!clientes || clientes.length === 0) {
+    if (error) {
+        console.error('Error loading clientes:', error);
+        container.innerHTML = '<p style="opacity:0.6">Error al cargar clientes</p>';
+        return;
+    }
+
+    if (!clientes || !Array.isArray(clientes) || clientes.length === 0) {
         container.innerHTML = '<p style="opacity:0.6">No hay clientes registrados</p>';
         return;
     }
 
-    // Ordenar por fecha de creación (más recientes primero) - en JS porque nuestro cliente no soporta .order()
+    // Ordenar por fecha de creación (más recientes primero)
     clientes.sort((a, b) => {
         const dateA = new Date(a.creado_en || 0);
         const dateB = new Date(b.creado_en || 0);
@@ -526,7 +536,7 @@ async function handleClienteSubmit(e) {
         contacto_telefono: telefono || null
     };
 
-    const result = await supabase.from('clientes').insert(cliente);
+    const { data, error } = await supabase.from('clientes').insert(cliente);
 
     if (error) {
         alert('Error al crear cliente: ' + error.message);
@@ -682,7 +692,7 @@ async function handleIngresoSubmit(e) {
         notas: document.getElementById('ingreso-notas').value
     };
 
-    const result = await supabase.from('ingresos').insert(ingreso);
+    const { data: result } = await supabase.from('ingresos').insert(ingreso);
 
     if (error) {
         alert('Error al registrar: ' + error.message);
@@ -723,7 +733,7 @@ async function handleGastoSubmit(e) {
         referencia: document.getElementById('gasto-referencia').value
     };
 
-    const result = await supabase.from('gastos').insert(gasto);
+    const { data: result } = await supabase.from('gastos').insert(gasto);
 
     if (error) {
         alert('Error al registrar: ' + error.message);
@@ -809,7 +819,7 @@ async function loadIngresosLista() {
 }
 
 async function loadGastosLista() {
-    const gastos = await supabase.from('gastos').select('*').then(r => r?.data || []);
+    const { data: gastos } = await supabase.from('gastos').select('*').then(r => r?.data || []);
 
     const container = document.getElementById('lista-gastos');
 
@@ -869,7 +879,7 @@ async function eliminarGasto(id) {
 
 // ===== DEUDAS =====
 async function loadDeudasLista() {
-    const deudas = await supabase.from('deudas').select('*').then(r => r?.data || []);
+    const { data: deudas } = await supabase.from('deudas').select('*').then(r => r?.data || []);
     const { data: pagos } = await supabase.from('pagos_deudas').select('*').then(r => r?.data || []);
 
     const container = document.getElementById('lista-deudas');
@@ -952,7 +962,7 @@ async function handleDeudaSubmit(e) {
         fecha_creacion: new Date().toISOString().split('T')[0]
     };
 
-    const result = await supabase.from('deudas').insert(deuda);
+    const { data: result } = await supabase.from('deudas').insert(deuda);
 
     if (error) {
         alert('Error al crear deuda: ' + error.message);
@@ -977,7 +987,7 @@ async function registrarPagoDeuda(deudaId, e) {
     if (monto <= 0) return;
 
     // Registrar pago
-    const result = await supabase.from('pagos_deudas').insert({
+    const { data: result } = await supabase.from('pagos_deudas').insert({
         deuda_id: deudaId,
         fecha,
         monto
@@ -1077,7 +1087,7 @@ async function handleSesionSubmit(e) {
         codigo_sesion: codigo
     };
 
-    const result = await supabase.from('sesiones').insert(sesion);
+    const { data: result } = await supabase.from('sesiones').insert(sesion);
 
     if (error) {
         alert('Error al crear sesión: ' + error.message);
@@ -1112,7 +1122,7 @@ async function loadReporteProyectos() {
         .select('*, clientes(nombre)')
         .then(r => r?.data || []);
 
-    const ingresos = await supabase.from('ingresos').select('proyecto_id, monto');
+    const { data: ingresos } = await supabase.from('ingresos').select('proyecto_id, monto');
 
     const pagadosPorProyecto = {};
     if (ingresos) {
@@ -1366,7 +1376,7 @@ async function handleProyectoSubmit(e) {
         estado: estado
     };
 
-    const result = await supabase.from('proyectos').insert(proyecto);
+    const { data: result } = await supabase.from('proyectos').insert(proyecto);
 
     if (error) {
         alert('Error al crear proyecto: ' + error.message);
