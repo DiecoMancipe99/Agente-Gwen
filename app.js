@@ -146,26 +146,37 @@ async function checkAuth() {
 
 async function handleLogin(e) {
     e.preventDefault();
+    console.log('[LOGIN] Intentando login con email:', document.getElementById('email').value);
+
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
     const errorEl = document.getElementById('login-error');
 
     try {
+        console.log('[LOGIN] Llamando a Supabase auth...');
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
+        console.log('[LOGIN] Respuesta recibida - error:', error, 'data:', data);
+
         if (error) {
+            console.error('[LOGIN] Error de Supabase:', error);
             errorEl.textContent = error.message || 'Error al iniciar sesión';
             return;
         }
 
         if (data.user && data.session) {
+            console.log('[LOGIN] Login exitoso, guardando sesión...');
             supabase.auth.setSession(data.session);
             currentUser = data.user;
             errorEl.textContent = '';
             showApp();
             await loadDashboard();
+        } else {
+            console.error('[LOGIN] Login no retornó user/session:', data);
+            errorEl.textContent = 'Respuesta inválida del servidor';
         }
     } catch (err) {
+        console.error('[LOGIN] Excepción:', err);
         errorEl.textContent = 'Error de conexión. Intentá de nuevo.';
     }
 }
@@ -603,7 +614,7 @@ function sugerirCategoriaGasto(descripcion) {
         'Marketing': ['instagram', 'facebook', 'google ads', 'publicidad', 'flyer']
     };
 
-    for (const [categoria, palabras] of Object.entries(patron**es**)) {
+    for (const [categoria, palabras] of Object.entries(patrones)) {
         if (palabras.some(p => desc.includes(p))) {
             sugerenciasEl.textContent = `💡 Sugerencia: ${categoria}`;
             document.getElementById('gasto-categoria').value = categoria;
