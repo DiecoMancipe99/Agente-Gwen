@@ -250,6 +250,9 @@ async function loadSectionData(section) {
         case 'dashboard':
             await loadDashboard();
             break;
+        case 'clientes':
+            await loadClientesLista();
+            break;
         case 'ingresos':
             await loadClientesSelect('ingreso-cliente');
             await loadProyectosSelect('ingreso-proyecto');
@@ -426,6 +429,133 @@ async function createCliente(nombre) {
     const { data, error } = await supabase.from('clientes').insert({ nombre });
     if (error) throw error;
     return data[0];
+}
+
+// ===== CLIENTES =====
+
+// Generar iniciales únicas para un cliente, evitando colisiones con otros
+function generarInicialesUnicas(nombre, todosLosNombres, index) {
+    const nombreLimpio = nombre.replace(/\s+/g, '').toUpperCase();
+
+    // Intentar con 3, 4, 5 letras hasta encontrar una única
+    for (let longitud = 3; longitud <= Math.min(5, nombreLimpio.length); longitud++) {
+        const iniciales = nombreLimpio.substring(0, longitud);
+
+        // Verificar si otro cliente tiene las mismas iniciales
+        let hayColision = false;
+        for (let i = 0; i < todosLosNombres.length; i++) {
+            if (i === index) continue; // Saltar el mismo cliente
+
+            const otroNombre = todosLosNombres[i].replace(/\s+/g, '').toUpperCase();
+            const otrasIniciales = otroNombre.substring(0, longitud);
+
+            if (iniciales === otrasIniciales) {
+                hayColision = true;
+                break;
+            }
+        }
+
+        if (!hayColision) {
+            return iniciales;
+        }
+    }
+
+    // Si todo colisiona, devolver las primeras 3 letras (el número lo diferenciará)
+    return nombreLimpio.substring(0, 3);
+}
+
+async function loadClientesLista() {
+    const { data: clientes, error } = await supabase.from('clientes')
+        .select('*')
+        .order('creado_en', { ascending: false })
+        .then(r => r || []);
+
+    const container = document.getElementById('lista-clientes');
+
+    if (!clientes || clientes.length === 0) {
+        container.innerHTML = '<p style="opacity:0.6">No hay clientes registrados</p>';
+        return;
+    }
+
+    // Extraer todos los nombres para detectar colisiones
+    const todosLosNombres = clientes.map(c => c.nombre);
+
+    // Generar código con formato: DM-XXX-CLI-001 (con iniciales únicas)
+    container.innerHTML = clientes.map((c, index) => {
+        const iniciales = generarInicialesUnicas(c.nombre, todosLosNombres, index);
+        const consecutivo = String(index + 1).padStart(3, '0');
+        const codigoCorto = `DM-${iniciales}-CLI-${consecutivo}`;
+        return `
+        <div class="cliente-item">
+            <div class="cliente-header">
+                <span class="cliente-codigo">${codigoCorto}</span>
+                <h4>${c.nombre}</h4>
+            </div>
+            <div class="cliente-detalles">
+                ${c.contacto_email ? `<span>📧 ${c.contacto_email}</span>` : ''}
+                ${c.contacto_telefono ? `<span>📱 ${c.contacto_telefono}</span>` : ''}
+            </div>
+            <div class="cliente-actions">
+                <button class="btn-delete" onclick="deleteCliente('${c.id}')">Eliminar</button>
+            </div>
+        </div>
+        `;
+    }).join('');
+}
+
+async function handleClienteSubmit(e) {
+    e.preventDefault();
+
+    const nombre = document.getElementById('cliente-nombre').value.trim();
+    const email = document.getElementById('cliente-email').value.trim();
+    const telefono = document.getElementById('cliente-telefono').value.trim();
+
+    if (!nombre) {
+        alert('El nombre es obligatorio');
+        return;
+    }
+
+    const cliente = {
+        nombre: nombre,
+        contacto_email: email || null,
+        contacto_telefono: telefono || null
+    };
+
+    const { data, error } = await supabase.from('clientes').insert(cliente);
+
+    if (error) {
+        alert('Error al crear cliente: ' + error.message);
+        return;
+    }
+
+    document.getElementById('cliente-success').textContent = `✅ Cliente '${nombre}' creado exitosamente`;
+    document.getElementById('form-cliente').reset();
+    await loadClientesLista();
+    await loadClientesSelect('ingreso-cliente');
+    await loadClientesSelect('sesion-cliente');
+    await loadClientesSelect('proyecto-cliente');
+
+    setTimeout(() => {
+        document.getElementById('cliente-success').textContent = '';
+    }, 3000);
+}
+
+async function deleteCliente(id) {
+    if (!confirm('¿Estás seguro de eliminar este cliente? Esta acción no se puede deshacer.')) {
+        return;
+    }
+
+    const { error } = await supabase.from('clientes').delete().eq('id', id);
+
+    if (error) {
+        alert('Error al eliminar: ' + error.message);
+        return;
+    }
+
+    await loadClientesLista();
+    await loadClientesSelect('ingreso-cliente');
+    await loadClientesSelect('sesion-cliente');
+    await loadClientesSelect('proyecto-cliente');
 }
 
 // ===== PROYECTOS =====
@@ -1250,6 +1380,7 @@ async function handleProyectoSubmit(e) {
 // ===== FORMS SETUP =====
 function setupForms() {
     document.getElementById('login-form').addEventListener('submit', handleLogin);
+    document.getElementById('form-cliente').addEventListener('submit', handleClienteSubmit);
     document.getElementById('form-ingreso').addEventListener('submit', handleIngresoSubmit);
     document.getElementById('form-gasto').addEventListener('submit', handleGastoSubmit);
     document.getElementById('form-proyecto').addEventListener('submit', handleProyectoSubmit);
@@ -1290,3 +1421,6 @@ async function init() {
 
 // Start app
 init();
+
+// ===== GLOBAL FUNCTIONS (for onclick handlers) =====
+window.deleteCliente = deleteCliente;
