@@ -692,7 +692,7 @@ async function handleIngresoSubmit(e) {
         notas: document.getElementById('ingreso-notas').value
     };
 
-    const { data: result } = await supabase.from('ingresos').insert(ingreso);
+    const { data: result, error } = await supabase.from('ingresos').insert(ingreso);
 
     if (error) {
         alert('Error al registrar: ' + error.message);
@@ -733,7 +733,7 @@ async function handleGastoSubmit(e) {
         referencia: document.getElementById('gasto-referencia').value
     };
 
-    const { data: result } = await supabase.from('gastos').insert(gasto);
+    const { data: result, error } = await supabase.from('gastos').insert(gasto);
 
     if (error) {
         alert('Error al registrar: ' + error.message);
@@ -962,7 +962,7 @@ async function handleDeudaSubmit(e) {
         fecha_creacion: new Date().toISOString().split('T')[0]
     };
 
-    const { data: result } = await supabase.from('deudas').insert(deuda);
+    const { data: result, error } = await supabase.from('deudas').insert(deuda);
 
     if (error) {
         alert('Error al crear deuda: ' + error.message);
@@ -987,7 +987,7 @@ async function registrarPagoDeuda(deudaId, e) {
     if (monto <= 0) return;
 
     // Registrar pago
-    const { data: result } = await supabase.from('pagos_deudas').insert({
+    const { data: result, error } = await supabase.from('pagos_deudas').insert({
         deuda_id: deudaId,
         fecha,
         monto
@@ -1087,7 +1087,7 @@ async function handleSesionSubmit(e) {
         codigo_sesion: codigo
     };
 
-    const { data: result } = await supabase.from('sesiones').insert(sesion);
+    const { data: result, error } = await supabase.from('sesiones').insert(sesion);
 
     if (error) {
         alert('Error al crear sesión: ' + error.message);
@@ -1376,7 +1376,7 @@ async function handleProyectoSubmit(e) {
         estado: estado
     };
 
-    const { data: result } = await supabase.from('proyectos').insert(proyecto);
+    const { data: result, error } = await supabase.from('proyectos').insert(proyecto);
 
     if (error) {
         alert('Error al crear proyecto: ' + error.message);
