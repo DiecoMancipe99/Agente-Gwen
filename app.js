@@ -1436,5 +1436,5 @@ init();
 
 // ===== GLOBAL FUNCTIONS (for onclick handlers) =====
 window.deleteCliente = deleteCliente;
-liente = deleteCliente;
-liente = deleteCliente;
+window.eliminarIngreso = eliminarIngreso;
+window.eliminarGasto = eliminarGasto;
