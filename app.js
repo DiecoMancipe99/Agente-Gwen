@@ -650,7 +650,16 @@ async function loadProyectosTabla() {
                         <td class="text-right">${formatCurrency(pagado)}</td>
                         <td class="text-right">${formatCurrency(debe)}</td>
                         <td><span class="deuda-badge ${estado.toLowerCase()}">${estado}</span></td>
-                        <td>${p.estatus || '-'}</td>
+                        <td>
+                            <select onchange="cambiarEstatusProyecto('${p.id}', this.value)" style="font-size:0.7rem;padding:0.25rem;border:1px solid rgba(94,28,46,0.3);border-radius:4px;background:transparent;">
+                                <option value="">-</option>
+                                <option value="Grabación" ${p.estatus === 'Grabación' ? 'selected' : ''}>Grabación</option>
+                                <option value="Producción" ${p.estatus === 'Producción' ? 'selected' : ''}>Producción</option>
+                                <option value="Mezcla" ${p.estatus === 'Mezcla' ? 'selected' : ''}>Mezcla</option>
+                                <option value="Master" ${p.estatus === 'Master' ? 'selected' : ''}>Master</option>
+                                <option value="RELEASE" ${p.estatus === 'RELEASE' ? 'selected' : ''}>RELEASE</option>
+                            </select>
+                        </td>
                         <td><button class="btn-secondary" onclick="eliminarProyecto('${p.id}')" style="font-size:0.65rem;padding:0.25rem 0.5rem;">🗑️ Eliminar</button></td>
                     </tr>
                 `;
@@ -887,6 +896,20 @@ async function eliminarProyecto(id) {
         return;
     }
     await loadProyectosTabla();
+}
+
+async function cambiarEstatusProyecto(id, nuevoEstatus) {
+    const { error } = await supabase.from('proyectos').update({ estatus: nuevoEstatus }).eq('id', id);
+    if (error) {
+        alert('Error al actualizar: ' + error.message);
+        return;
+    }
+    // Feedback visual pequeño
+    const select = event.target;
+    select.style.borderColor = 'var(--color-primary)';
+    setTimeout(() => {
+        select.style.borderColor = 'rgba(94,28,46,0.3)';
+    }, 1000);
 }
 
 async function eliminarDeuda(id) {
@@ -1481,3 +1504,4 @@ window.eliminarGasto = eliminarGasto;
 window.eliminarProyecto = eliminarProyecto;
 window.eliminarDeuda = eliminarDeuda;
 window.eliminarSesion = eliminarSesion;
+window.cambiarEstatusProyecto = cambiarEstatusProyecto;
