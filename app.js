@@ -1056,17 +1056,23 @@ async function registrarPagoDeuda(deudaId, e) {
         return;
     }
 
-    // Actualizar deuda
-    const deudaData = (await supabase.from('deudas').select('monto_pagado, monto_total').eq('id', deudaId))?.[0] || null;
+    // Actualizar deuda - obtener datos primero
+    const { data: deudasData } = await supabase.from('deudas').select('monto_pagado, monto_total').eq('id', deudaId);
+    const deudaData = deudasData?.[0] || null;
 
     if (deudaData) {
         const nuevoPagado = (deudaData.monto_pagado || 0) + monto;
         const estado = nuevoPagado >= deudaData.monto_total ? 'Pagada' : 'Pendiente';
 
-        await supabase.from('deudas').update({
+        const { error: updateError } = await supabase.from('deudas').update({
             monto_pagado: nuevoPagado,
             estado
         }).eq('id', deudaId);
+
+        if (updateError) {
+            alert('Error al actualizar deuda: ' + updateError.message);
+            return;
+        }
     }
 
     // Recargar la lista de deudas y quedarse en la sección
