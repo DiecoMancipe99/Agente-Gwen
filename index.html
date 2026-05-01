@@ -402,19 +402,20 @@
 
                         <div class="form-row">
                             <div class="form-group">
-                                <label for="proyecto-estado">Estado</label>
-                                <select id="proyecto-estado" required>
-                                    <option value="Pendiente">Pendiente</option>
+                                <label for="proyecto-estatus">Estatus (opcional)</label>
+                                <select id="proyecto-estatus">
+                                    <option value="">-- Seleccionar estatus --</option>
+                                    <option value="Grabación">Grabación</option>
                                     <option value="Producción">Producción</option>
                                     <option value="Mezcla">Mezcla</option>
                                     <option value="Master">Master</option>
                                     <option value="RELEASE">RELEASE</option>
-                                    <option value="custom">-- Estado personalizado --</option>
+                                    <option value="custom">-- Estatus personalizado --</option>
                                 </select>
                             </div>
-                            <div class="form-group" id="proyecto-estado-custom-group" style="display:none;">
-                                <label for="proyecto-estado-custom">Escribí el estado</label>
-                                <input type="text" id="proyecto-estado-custom" placeholder="Ej: En revisión">
+                            <div class="form-group" id="proyecto-estatus-custom-group" style="display:none;">
+                                <label for="proyecto-estatus-custom">Escribí el estatus</label>
+                                <input type="text" id="proyecto-estatus-custom" placeholder="Ej: En revisión">
                             </div>
                         </div>
 
