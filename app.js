@@ -166,17 +166,23 @@ async function handleLogin(e) {
             return;
         }
 
-        // La respuesta exitosa viene con user y session directamente
-        if (response.user && response.session) {
+        // La respuesta exitosa viene con user y los datos de sesión
+        if (response.user) {
             console.log('[LOGIN] Login exitoso, guardando sesión...');
-            supabase.auth.setSession(response.session);
+            // Guardamos el token y user en localStorage
+            supabase.auth.setSession({
+                access_token: response.access_token,
+                refresh_token: response.refresh_token,
+                expires_at: response.expires_at,
+                user: response.user
+            });
             currentUser = response.user;
             errorEl.textContent = '';
             showApp();
             await loadDashboard();
         } else {
-            console.error('[LOGIN] Login no retornó user/session:', response);
-            errorEl.textContent = 'Respuesta inválida del servidor - revisá la consola';
+            console.error('[LOGIN] Login no retornó user:', response);
+            errorEl.textContent = 'Respuesta inválida del servidor';
         }
     } catch (err) {
         console.error('[LOGIN] Excepción:', err);
