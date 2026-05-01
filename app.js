@@ -154,25 +154,27 @@ async function handleLogin(e) {
 
     try {
         console.log('[LOGIN] Llamando a Supabase auth...');
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        const response = await supabase.auth.signInWithPassword({ email, password });
 
-        console.log('[LOGIN] Respuesta recibida - error:', error, 'data:', data);
+        console.log('[LOGIN] Respuesta recibida:', response);
 
-        if (error) {
-            console.error('[LOGIN] Error de Supabase:', error);
-            errorEl.textContent = error.message || 'Error al iniciar sesión';
+        // Supabase puede retornar error directamente en la respuesta
+        if (response.error) {
+            console.error('[LOGIN] Error de Supabase:', response.error);
+            errorEl.textContent = response.error.message || 'Error al iniciar sesión';
             return;
         }
 
-        if (data.user && data.session) {
+        // La respuesta exitosa viene con user y session directamente
+        if (response.user && response.session) {
             console.log('[LOGIN] Login exitoso, guardando sesión...');
-            supabase.auth.setSession(data.session);
-            currentUser = data.user;
+            supabase.auth.setSession(response.session);
+            currentUser = response.user;
             errorEl.textContent = '';
             showApp();
             await loadDashboard();
         } else {
-            console.error('[LOGIN] Login no retornó user/session:', data);
+            console.error('[LOGIN] Login no retornó user/session:', response);
             errorEl.textContent = 'Respuesta inválida del servidor';
         }
     } catch (err) {
