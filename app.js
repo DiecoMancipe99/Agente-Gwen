@@ -626,6 +626,8 @@ async function loadProyectosTabla() {
                 <th class="text-right">Pagado</th>
                 <th class="text-right">Debe</th>
                 <th>Estado</th>
+                <th>Estatus</th>
+                <th>Acciones</th>
             </tr>
         </thead>
         <tbody>
@@ -648,6 +650,7 @@ async function loadProyectosTabla() {
                         <td class="text-right">${formatCurrency(pagado)}</td>
                         <td class="text-right">${formatCurrency(debe)}</td>
                         <td><span class="deuda-badge ${estado.toLowerCase()}">${estado}</span></td>
+                        <td>${p.estatus || '-'}</td>
                         <td><button class="btn-secondary" onclick="eliminarProyecto('${p.id}')" style="font-size:0.65rem;padding:0.25rem 0.5rem;">🗑️ Eliminar</button></td>
                     </tr>
                 `;
@@ -1363,11 +1366,11 @@ async function handleProyectoSubmit(e) {
     const precio = parseFloat(document.getElementById('proyecto-precio').value) || 0;
     const cuota = parseFloat(document.getElementById('proyecto-cuota').value) || null;
 
-    // Usar estado personalizado si se seleccionó
-    const estadoSelect = document.getElementById('proyecto-estado');
-    let estado = estadoSelect.value;
-    if (estado === 'custom') {
-        estado = document.getElementById('proyecto-estado-custom').value.trim() || 'Pendiente';
+    // Obtener estatus personalizado si se seleccionó
+    const estatusSelect = document.getElementById('proyecto-estatus');
+    let estatus = estatusSelect.value;
+    if (estatus === 'custom') {
+        estatus = document.getElementById('proyecto-estatus-custom').value.trim() || null;
     }
 
     const clienteId = clienteSelect.value;
@@ -1377,18 +1380,13 @@ async function handleProyectoSubmit(e) {
         return;
     }
 
-    if (!clienteId) {
-        alert('Debes seleccionar o crear un cliente');
-        return;
-    }
-
     if (!nombreProyecto) {
         alert('El nombre del proyecto es obligatorio');
         return;
     }
 
     // Generar código
-    const cliente = clienteSelect.options[clienteSelect.selectedIndex]?.text || nuevoClienteInput.value;
+    const cliente = clienteSelect.options[clienteSelect.selectedIndex]?.text;
     const { data: proyectosCount } = await supabase.from('proyectos').select('id');
     const contador = (proyectosCount?.length || 0) + 1;
     const codigo = generarCodigoSesion(cliente, nombreProyecto, contador);
@@ -1399,7 +1397,7 @@ async function handleProyectoSubmit(e) {
         codigo: codigo,
         precio_total: precio,
         valor_cuota: cuota,
-        estado: estado
+        estatus: estatus || null
     };
 
     const { data: result, error } = await supabase.from('proyectos').insert(proyecto);
@@ -1435,15 +1433,15 @@ function setupForms() {
         }
     });
 
-    // Estado personalizado para proyectos
-    const estadoSelect = document.getElementById('proyecto-estado');
-    const estadoCustomGroup = document.getElementById('proyecto-estado-custom-group');
-    if (estadoSelect && estadoCustomGroup) {
-        estadoSelect.addEventListener('change', () => {
-            if (estadoSelect.value === 'custom') {
-                estadoCustomGroup.style.display = 'block';
+    // Estatus personalizado para proyectos
+    const estatusSelect = document.getElementById('proyecto-estatus');
+    const estatusCustomGroup = document.getElementById('proyecto-estatus-custom-group');
+    if (estatusSelect && estatusCustomGroup) {
+        estatusSelect.addEventListener('change', () => {
+            if (estatusSelect.value === 'custom') {
+                estatusCustomGroup.style.display = 'block';
             } else {
-                estadoCustomGroup.style.display = 'none';
+                estatusCustomGroup.style.display = 'none';
             }
         });
     }
