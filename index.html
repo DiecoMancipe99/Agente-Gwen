@@ -379,11 +379,6 @@
                                 <select id="proyecto-cliente" required>
                                     <option value="">Seleccionar cliente...</option>
                                 </select>
-                                <button type="button" id="btn-nuevo-cliente-proyecto" class="btn-link">+ Nuevo cliente</button>
-                            </div>
-                            <div class="form-group" id="nuevo-cliente-proyecto-group" style="display:none;">
-                                <label for="nuevo-cliente-proyecto">Nombre del nuevo cliente</label>
-                                <input type="text" id="nuevo-cliente-proyecto">
                             </div>
                         </div>
 
@@ -397,23 +392,30 @@
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="proyecto-precio">Precio total (COP)</label>
-                                <input type="number" id="proyecto-precio" min="0" step="50000" required>
+                                <input type="number" id="proyecto-precio" min="0" step="0.01" required>
                             </div>
                             <div class="form-group">
                                 <label for="proyecto-cuota">Valor de cuota (COP, opcional)</label>
-                                <input type="number" id="proyecto-cuota" min="0" step="10000">
+                                <input type="number" id="proyecto-cuota" min="0" step="0.01">
                             </div>
                         </div>
 
-                        <div class="form-group">
-                            <label for="proyecto-estado">Estado</label>
-                            <select id="proyecto-estado" required>
-                                <option value="Pendiente">Pendiente</option>
-                                <option value="Producción">Producción</option>
-                                <option value="Mezcla">Mezcla</option>
-                                <option value="Master">Master</option>
-                                <option value="RELEASE">RELEASE</option>
-                            </select>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="proyecto-estado">Estado</label>
+                                <select id="proyecto-estado" required>
+                                    <option value="Pendiente">Pendiente</option>
+                                    <option value="Producción">Producción</option>
+                                    <option value="Mezcla">Mezcla</option>
+                                    <option value="Master">Master</option>
+                                    <option value="RELEASE">RELEASE</option>
+                                    <option value="custom">-- Estado personalizado --</option>
+                                </select>
+                            </div>
+                            <div class="form-group" id="proyecto-estado-custom-group" style="display:none;">
+                                <label for="proyecto-estado-custom">Escribí el estado</label>
+                                <input type="text" id="proyecto-estado-custom" placeholder="Ej: En revisión">
+                            </div>
                         </div>
 
                         <button type="submit" class="btn-primary btn-full">Crear Proyecto</button>
@@ -482,11 +484,6 @@
                                 <select id="sesion-cliente" required>
                                     <option value="">Seleccionar cliente...</option>
                                 </select>
-                                <button type="button" id="btn-nuevo-cliente-sesion" class="btn-link">+ Nuevo cliente</button>
-                            </div>
-                            <div class="form-group" id="nuevo-cliente-sesion-group" style="display:none;">
-                                <label for="nuevo-cliente-sesion">Nombre del nuevo cliente</label>
-                                <input type="text" id="nuevo-cliente-sesion">
                             </div>
                         </div>
 
