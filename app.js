@@ -1051,8 +1051,8 @@ async function registrarPagoDeuda(deudaId, e) {
         monto
     });
 
-    if (pagoError) {
-        alert('Error al registrar pago: ' + pagoError.message);
+    if (error) {
+        alert('Error al registrar pago: ' + error.message);
         return;
     }
 
@@ -1069,7 +1069,12 @@ async function registrarPagoDeuda(deudaId, e) {
         }).eq('id', deudaId);
     }
 
+    // Recargar la lista de deudas y quedarse en la sección
     await loadDeudasLista();
+
+    // Limpiar formulario
+    form.reset();
+    form.fecha.value = new Date().toISOString().split('T')[0];
 }
 
 // ===== SESIONES =====
