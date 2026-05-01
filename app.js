@@ -156,7 +156,8 @@ async function handleLogin(e) {
         console.log('[LOGIN] Llamando a Supabase auth...');
         const response = await supabase.auth.signInWithPassword({ email, password });
 
-        console.log('[LOGIN] Respuesta recibida:', response);
+        console.log('[LOGIN] Respuesta recibida - keys:', Object.keys(response));
+        console.log('[LOGIN] Respuesta completa:', JSON.stringify(response, null, 2));
 
         // Supabase puede retornar error directamente en la respuesta
         if (response.error) {
@@ -175,7 +176,7 @@ async function handleLogin(e) {
             await loadDashboard();
         } else {
             console.error('[LOGIN] Login no retornó user/session:', response);
-            errorEl.textContent = 'Respuesta inválida del servidor';
+            errorEl.textContent = 'Respuesta inválida del servidor - revisá la consola';
         }
     } catch (err) {
         console.error('[LOGIN] Excepción:', err);
