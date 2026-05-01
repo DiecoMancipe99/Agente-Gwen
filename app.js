@@ -292,11 +292,11 @@ async function loadDashboard() {
 }
 
 async function loadBalanceGeneral() {
-    const { data: ingresos, error: err1 } = await supabase.from('ingresos').select('monto');
-    const { data: gastos, error: err2 } = await supabase.from('gastos').select('monto');
+    const ingresos = await supabase.from('ingresos').select('monto');
+    const gastos = await supabase.from('gastos').select('monto');
 
-    const totalIngresos = ingresos?.reduce((sum, i) => sum + (parseFloat(i.monto) || 0), 0) || 0;
-    const totalGastos = gastos?.reduce((sum, g) => sum + (parseFloat(g.monto) || 0), 0) || 0;
+    const totalIngresos = (ingresos || []).reduce((sum, i) => sum + (parseFloat(i.monto) || 0), 0);
+    const totalGastos = (gastos || []).reduce((sum, g) => sum + (parseFloat(g.monto) || 0), 0);
     const balance = totalIngresos - totalGastos;
 
     // Sidebar
@@ -315,7 +315,7 @@ async function loadBalanceGeneral() {
 }
 
 async function loadGastosPorCategoria() {
-    const { data: gastos, error } = await supabase.from('gastos').select('categoria, monto');
+    const gastos = await supabase.from('gastos').select('categoria, monto');
 
     if (!gastos || gastos.length === 0) {
         document.getElementById('gastos-categorias-chart').innerHTML = '<p style="opacity:0.6">No hay gastos registrados</p>';
@@ -371,9 +371,9 @@ async function loadGastosPorCategoria() {
 
 async function loadUltimosMovimientos() {
     // Últimos ingresos
-    const { data: ingresos, error: err1 } = await supabase.from('ingresos')
-        .select('*, clientes(nombre), proyectos(nombre_proyecto)')
-        .then(({ data }) => data ? data.slice(0, 5) : []);
+    const ingresosResult = await supabase.from('ingresos')
+        .select('*, clientes(nombre), proyectos(nombre_proyecto)');
+    const ingresos = (ingresosResult || []).slice(0, 5);
 
     const ingEl = document.getElementById('ultimos-ingresos');
     if (ingresos && ingresos.length > 0) {
@@ -389,9 +389,8 @@ async function loadUltimosMovimientos() {
     }
 
     // Últimos gastos
-    const { data: gastos, error: err2 } = await supabase.from('gastos')
-        .select('*')
-        .then(({ data }) => data ? data.slice(0, 5) : []);
+    const gastosResult = await supabase.from('gastos').select('*');
+    const gastos = (gastosResult || []).slice(0, 5);
 
     const gasEl = document.getElementById('ultimos-gastos');
     if (gastos && gastos.length > 0) {
@@ -409,7 +408,8 @@ async function loadUltimosMovimientos() {
 
 // ===== CLIENTES =====
 async function loadClientesSelect(selectId) {
-    const { data: clientes, error } = await supabase.from('clientes').select('*').then(r => r || []);
+    const result = await supabase.from('clientes').select('*');
+    const clientes = result || [];
     const select = document.getElementById(selectId);
 
     const existingOptions = select.querySelectorAll('option:not([value=""])');
@@ -426,9 +426,9 @@ async function loadClientesSelect(selectId) {
 }
 
 async function createCliente(nombre) {
-    const { data, error } = await supabase.from('clientes').insert({ nombre });
-    if (error) throw error;
-    return data[0];
+    const result = await supabase.from('clientes').insert({ nombre });
+    if (!result) throw new Error('Error al crear cliente');
+    return result[0] || result;
 }
 
 // ===== CLIENTES =====
@@ -465,10 +465,8 @@ function generarInicialesUnicas(nombre, todosLosNombres, index) {
 }
 
 async function loadClientesLista() {
-    const { data: clientes, error } = await supabase.from('clientes')
-        .select('*')
-        .order('creado_en', { ascending: false })
-        .then(r => r || []);
+    const result = await supabase.from('clientes').select('*');
+    const clientes = result || [];
 
     const container = document.getElementById('lista-clientes');
 
@@ -476,6 +474,13 @@ async function loadClientesLista() {
         container.innerHTML = '<p style="opacity:0.6">No hay clientes registrados</p>';
         return;
     }
+
+    // Ordenar por fecha de creación (más recientes primero) - en JS porque nuestro cliente no soporta .order()
+    clientes.sort((a, b) => {
+        const dateA = new Date(a.creado_en || 0);
+        const dateB = new Date(b.creado_en || 0);
+        return dateB - dateA;
+    });
 
     // Extraer todos los nombres para detectar colisiones
     const todosLosNombres = clientes.map(c => c.nombre);
@@ -521,7 +526,7 @@ async function handleClienteSubmit(e) {
         contacto_telefono: telefono || null
     };
 
-    const { data, error } = await supabase.from('clientes').insert(cliente);
+    const result = await supabase.from('clientes').insert(cliente);
 
     if (error) {
         alert('Error al crear cliente: ' + error.message);
@@ -560,9 +565,9 @@ async function deleteCliente(id) {
 
 // ===== PROYECTOS =====
 async function loadProyectosSelect(selectId) {
-    const { data: proyectos, error } = await supabase.from('proyectos')
+    const proyectos = await supabase.from('proyectos')
         .select('*, clientes(nombre)')
-        .then(r => r || []);
+        .then(r => r?.data || []);
 
     const select = document.getElementById(selectId);
 
@@ -580,9 +585,9 @@ async function loadProyectosSelect(selectId) {
 }
 
 async function loadProyectosTabla() {
-    const { data: proyectos, error } = await supabase.from('proyectos')
+    const proyectos = await supabase.from('proyectos')
         .select('*, clientes(nombre)')
-        .then(r => r || []);
+        .then(r => r?.data || []);
 
     const tableEl = document.getElementById('proyectos-table');
 
@@ -677,7 +682,7 @@ async function handleIngresoSubmit(e) {
         notas: document.getElementById('ingreso-notas').value
     };
 
-    const { data, error } = await supabase.from('ingresos').insert(ingreso);
+    const result = await supabase.from('ingresos').insert(ingreso);
 
     if (error) {
         alert('Error al registrar: ' + error.message);
@@ -718,7 +723,7 @@ async function handleGastoSubmit(e) {
         referencia: document.getElementById('gasto-referencia').value
     };
 
-    const { data, error } = await supabase.from('gastos').insert(gasto);
+    const result = await supabase.from('gastos').insert(gasto);
 
     if (error) {
         alert('Error al registrar: ' + error.message);
@@ -766,9 +771,9 @@ function sugerirCategoriaGasto(descripcion) {
 
 // ===== GESTIONAR =====
 async function loadIngresosLista() {
-    const { data: ingresos, error } = await supabase.from('ingresos')
+    const ingresos = await supabase.from('ingresos')
         .select('*, clientes(nombre), proyectos(nombre_proyecto)')
-        .then(r => r || []);
+        .then(r => r?.data || []);
 
     const container = document.getElementById('lista-ingresos');
 
@@ -804,7 +809,7 @@ async function loadIngresosLista() {
 }
 
 async function loadGastosLista() {
-    const { data: gastos, error } = await supabase.from('gastos').select('*').then(r => r || []);
+    const gastos = await supabase.from('gastos').select('*').then(r => r?.data || []);
 
     const container = document.getElementById('lista-gastos');
 
@@ -864,8 +869,8 @@ async function eliminarGasto(id) {
 
 // ===== DEUDAS =====
 async function loadDeudasLista() {
-    const { data: deudas, error } = await supabase.from('deudas').select('*').then(r => r || []);
-    const { data: pagos } = await supabase.from('pagos_deudas').select('*').then(r => r || []);
+    const deudas = await supabase.from('deudas').select('*').then(r => r?.data || []);
+    const { data: pagos } = await supabase.from('pagos_deudas').select('*').then(r => r?.data || []);
 
     const container = document.getElementById('lista-deudas');
 
@@ -947,7 +952,7 @@ async function handleDeudaSubmit(e) {
         fecha_creacion: new Date().toISOString().split('T')[0]
     };
 
-    const { data, error } = await supabase.from('deudas').insert(deuda);
+    const result = await supabase.from('deudas').insert(deuda);
 
     if (error) {
         alert('Error al crear deuda: ' + error.message);
@@ -972,7 +977,7 @@ async function registrarPagoDeuda(deudaId, e) {
     if (monto <= 0) return;
 
     // Registrar pago
-    const { data: pago, error: pagoError } = await supabase.from('pagos_deudas').insert({
+    const result = await supabase.from('pagos_deudas').insert({
         deuda_id: deudaId,
         fecha,
         monto
@@ -984,7 +989,7 @@ async function registrarPagoDeuda(deudaId, e) {
     }
 
     // Actualizar deuda
-    const { data: deudaData } = await supabase.from('deudas').select('monto_pagado, monto_total').eq('id', deudaId).then(r => r?.[0]);
+    const deudaData = (await supabase.from('deudas').select('monto_pagado, monto_total').eq('id', deudaId))?.[0] || null;
 
     if (deudaData) {
         const nuevoPagado = (deudaData.monto_pagado || 0) + monto;
@@ -1001,9 +1006,9 @@ async function registrarPagoDeuda(deudaId, e) {
 
 // ===== SESIONES =====
 async function loadSesionesTabla() {
-    const { data: sesiones, error } = await supabase.from('sesiones')
+    const sesiones = await supabase.from('sesiones')
         .select('*, clientes(nombre), proyectos(nombre_proyecto)')
-        .then(r => r || []);
+        .then(r => r?.data || []);
 
     const tableEl = document.getElementById('sesiones-table');
 
@@ -1072,7 +1077,7 @@ async function handleSesionSubmit(e) {
         codigo_sesion: codigo
     };
 
-    const { data, error } = await supabase.from('sesiones').insert(sesion);
+    const result = await supabase.from('sesiones').insert(sesion);
 
     if (error) {
         alert('Error al crear sesión: ' + error.message);
@@ -1103,11 +1108,11 @@ function generarCodigoSesion(clienteNombre, objetivo, contador) {
 
 // ===== REPORTES =====
 async function loadReporteProyectos() {
-    const { data: proyectos, error } = await supabase.from('proyectos')
+    const proyectos = await supabase.from('proyectos')
         .select('*, clientes(nombre)')
-        .then(r => r || []);
+        .then(r => r?.data || []);
 
-    const { data: ingresos } = await supabase.from('ingresos').select('proyecto_id, monto');
+    const ingresos = await supabase.from('ingresos').select('proyecto_id, monto');
 
     const pagadosPorProyecto = {};
     if (ingresos) {
@@ -1361,7 +1366,7 @@ async function handleProyectoSubmit(e) {
         estado: estado
     };
 
-    const { data, error } = await supabase.from('proyectos').insert(proyecto);
+    const result = await supabase.from('proyectos').insert(proyecto);
 
     if (error) {
         alert('Error al crear proyecto: ' + error.message);
