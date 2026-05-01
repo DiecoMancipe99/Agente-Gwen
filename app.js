@@ -648,6 +648,7 @@ async function loadProyectosTabla() {
                         <td class="text-right">${formatCurrency(pagado)}</td>
                         <td class="text-right">${formatCurrency(debe)}</td>
                         <td><span class="deuda-badge ${estado.toLowerCase()}">${estado}</span></td>
+                        <td><button class="btn-secondary" onclick="eliminarProyecto('${p.id}')" style="font-size:0.65rem;padding:0.25rem 0.5rem;">🗑️ Eliminar</button></td>
                     </tr>
                 `;
             }).join('')}
@@ -874,6 +875,39 @@ async function eliminarGasto(id) {
     if (currentSection === 'dashboard') await loadDashboard();
 }
 
+async function eliminarProyecto(id) {
+    if (!confirm('¿Seguro que querés eliminar este proyecto?')) return;
+
+    const { error } = await supabase.from('proyectos').delete().eq('id', id);
+    if (error) {
+        alert('Error al eliminar: ' + error.message);
+        return;
+    }
+    await loadProyectosTabla();
+}
+
+async function eliminarDeuda(id) {
+    if (!confirm('¿Seguro que querés eliminar esta deuda?')) return;
+
+    const { error } = await supabase.from('deudas').delete().eq('id', id);
+    if (error) {
+        alert('Error al eliminar: ' + error.message);
+        return;
+    }
+    await loadDeudasLista();
+}
+
+async function eliminarSesion(id) {
+    if (!confirm('¿Seguro que querés eliminar esta sesión?')) return;
+
+    const { error } = await supabase.from('sesiones').delete().eq('id', id);
+    if (error) {
+        alert('Error al eliminar: ' + error.message);
+        return;
+    }
+    await loadSesionesTabla();
+}
+
 // ===== DEUDAS =====
 async function loadDeudasLista() {
     const { data: deudas } = await supabase.from('deudas').select('*');
@@ -907,6 +941,7 @@ async function loadDeudasLista() {
                 <div class="deuda-header">
                     <h4>${d.persona}</h4>
                     <span class="deuda-badge ${estado.toLowerCase()}">${estado}</span>
+                    <button class="btn-secondary" onclick="eliminarDeuda('${d.id}')" style="font-size:0.65rem;padding:0.25rem 0.5rem;">🗑️ Eliminar</button>
                 </div>
                 <div class="deuda-details">
                     <div class="deuda-detail">
@@ -928,7 +963,7 @@ async function loadDeudasLista() {
                     <div class="deuda-pagos">
                         <h5>Registrar Pago</h5>
                         <form onsubmit="registrarPagoDeuda('${d.id}', event)" style="display:flex;gap:0.5rem;flex-wrap:wrap;">
-                            <input type="number" name="monto" placeholder="Monto" min="0" step="10000" style="flex:1;min-width:100px;padding:0.5rem;border:1px solid rgba(94,28,46,0.3);border-radius:4px;" required>
+                            <input type="number" name="monto" placeholder="Monto" min="0" step="0.01" style="flex:1;min-width:100px;padding:0.5rem;border:1px solid rgba(94,28,46,0.3);border-radius:4px;" required>
                             <input type="date" name="fecha" value="${new Date().toISOString().split('T')[0]}" style="padding:0.5rem;border:1px solid rgba(94,28,46,0.3);border-radius:4px;">
                             <button type="submit" class="btn-primary" style="padding:0.5rem 1rem;font-size:0.7rem;">Registrar</button>
                         </form>
@@ -1032,6 +1067,7 @@ async function loadSesionesTabla() {
                 <th>Objetivo</th>
                 <th>Estado</th>
                 <th>Código</th>
+                <th>Acciones</th>
             </tr>
         </thead>
         <tbody>
@@ -1043,6 +1079,7 @@ async function loadSesionesTabla() {
                     <td>${s.objetivo || 'Sin objetivo'}</td>
                     <td>${s.estado || 'N/A'}</td>
                     <td>${s.codigo_sesion || 'N/A'}</td>
+                    <td><button class="btn-secondary" onclick="eliminarSesion('${s.id}')" style="font-size:0.65rem;padding:0.25rem 0.5rem;">🗑️ Eliminar</button></td>
                 </tr>
             `).join('')}
         </tbody>
@@ -1212,10 +1249,10 @@ async function loadFlujoCaja() {
         return;
     }
 
-    const maxVal = Math.max(...meses.map(m => Math.max(porMes[m].ingresos, porMes[m].gastos)));
+    const maxVal = Math.max(...meses.map(m => Math.max(porMes[m].ingresos, porMes[m].gastos)), 1);
 
     chartEl.innerHTML = `
-        <div style="display:flex;gap:1rem;align-items:flex-end;height:200px;padding:1rem;">
+        <div style="display:flex;gap:1rem;align-items:flex-end;height:200px;padding:1rem;overflow-x:auto;">
             ${meses.map(m => {
                 const d = porMes[m];
                 const ingHeight = (d.ingresos / maxVal) * 100;
@@ -1282,18 +1319,6 @@ function setupModalCliente() {
         document.getElementById(currentGroup).style.display = 'block';
     });
 
-    document.getElementById('btn-nuevo-cliente-proyecto').addEventListener('click', () => {
-        currentSelect = 'proyecto-cliente';
-        currentGroup = 'nuevo-cliente-proyecto-group';
-        document.getElementById(currentGroup).style.display = 'block';
-    });
-
-    document.getElementById('btn-nuevo-cliente-sesion').addEventListener('click', () => {
-        currentSelect = 'sesion-cliente';
-        currentGroup = 'nuevo-cliente-sesion-group';
-        document.getElementById(currentGroup).style.display = 'block';
-    });
-
     document.getElementById('modal-cliente-cancel').addEventListener('click', () => {
         modal.classList.add('hidden');
         if (currentGroup) {
@@ -1334,18 +1359,22 @@ async function handleProyectoSubmit(e) {
     e.preventDefault();
 
     const clienteSelect = document.getElementById('proyecto-cliente');
-    const nuevoClienteInput = document.getElementById('nuevo-cliente-proyecto');
     const nombreProyecto = document.getElementById('proyecto-nombre').value.trim();
     const precio = parseFloat(document.getElementById('proyecto-precio').value) || 0;
     const cuota = parseFloat(document.getElementById('proyecto-cuota').value) || null;
-    const estado = document.getElementById('proyecto-estado').value;
 
-    let clienteId = clienteSelect.value;
+    // Usar estado personalizado si se seleccionó
+    const estadoSelect = document.getElementById('proyecto-estado');
+    let estado = estadoSelect.value;
+    if (estado === 'custom') {
+        estado = document.getElementById('proyecto-estado-custom').value.trim() || 'Pendiente';
+    }
 
-    // Crear nuevo cliente si es necesario
-    if (!clienteId && nuevoClienteInput.value.trim()) {
-        const nuevoCliente = await createCliente(nuevoClienteInput.value.trim());
-        clienteId = nuevoCliente.id;
+    const clienteId = clienteSelect.value;
+
+    if (!clienteId) {
+        alert('Debes seleccionar un cliente');
+        return;
     }
 
     if (!clienteId) {
@@ -1405,6 +1434,19 @@ function setupForms() {
             sugerirCategoriaGasto(e.target.value);
         }
     });
+
+    // Estado personalizado para proyectos
+    const estadoSelect = document.getElementById('proyecto-estado');
+    const estadoCustomGroup = document.getElementById('proyecto-estado-custom-group');
+    if (estadoSelect && estadoCustomGroup) {
+        estadoSelect.addEventListener('change', () => {
+            if (estadoSelect.value === 'custom') {
+                estadoCustomGroup.style.display = 'block';
+            } else {
+                estadoCustomGroup.style.display = 'none';
+            }
+        });
+    }
 }
 
 // ===== TABS SETUP =====
@@ -1438,3 +1480,6 @@ init();
 window.deleteCliente = deleteCliente;
 window.eliminarIngreso = eliminarIngreso;
 window.eliminarGasto = eliminarGasto;
+window.eliminarProyecto = eliminarProyecto;
+window.eliminarDeuda = eliminarDeuda;
+window.eliminarSesion = eliminarSesion;
