@@ -1056,21 +1056,35 @@ async function registrarPagoDeuda(deudaId, e) {
         return;
     }
 
-    // Actualizar deuda - obtener datos primero (usando filtro por URL)
-    const { data: deudasData } = await supabase.from('deudas').select(`monto_pagado, monto_total?id=eq.${deudaId}`);
-    const deudaData = deudasData?.[0] || null;
+    // Actualizar deuda - obtener todas y filtrar en JS (nuestro cliente no soporta .eq)
+    const { data: todasDeudas } = await supabase.from('deudas').select('id, monto_pagado, monto_total');
+    const deudaData = todasDeudas?.find(d => d.id === deudaId) || null;
 
     if (deudaData) {
         const nuevoPagado = (deudaData.monto_pagado || 0) + monto;
         const estado = nuevoPagado >= deudaData.monto_total ? 'Pagada' : 'Pendiente';
 
-        const { error: updateError } = await supabase.from('deudas').update(`monto_pagado,estado?id=eq.${deudaId}`, {
-            monto_pagado: nuevoPagado,
-            estado
+        // Actualizar usando fetch directo con filtro en URL
+        const session = JSON.parse(localStorage.getItem('supabase_session') || 'null');
+        const token = session?.access_token || SUPABASE_ANON_KEY;
+
+        const updateResponse = await fetch(`${SUPABASE_URL}/rest/v1/deudas?id=eq.${deudaId}`, {
+            method: 'PATCH',
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=representation'
+            },
+            body: JSON.stringify({
+                monto_pagado: nuevoPagado,
+                estado
+            })
         });
 
-        if (updateError) {
-            alert('Error al actualizar deuda: ' + updateError.message);
+        if (updateResponse.status >= 400) {
+            const errorData = await updateResponse.json();
+            alert('Error al actualizar deuda: ' + (errorData.message || 'Error desconocido'));
             return;
         }
     }
