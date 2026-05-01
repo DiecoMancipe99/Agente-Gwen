@@ -1531,6 +1531,3 @@ window.eliminarDeuda = eliminarDeuda;
 window.eliminarSesion = eliminarSesion;
 window.cambiarEstatusProyecto = cambiarEstatusProyecto;
 window.registrarPagoDeuda = registrarPagoDeuda;
-
-// ===== EXPORT FOR MODULES =====
-export { supabase };
