@@ -116,7 +116,8 @@ function renderProyectos(proyectos) {
     grid.innerHTML = proyectosFiltrados.map(proyecto => {
         const titulo = proyecto.titulo || 'Sin título';
         const artista = proyecto.artista || 'Artista';
-        const coverArt = getCoverArt(titulo);
+        // Usar cover_art de la BD si existe, si no usar el default
+        const coverArt = proyecto.cover_art ? proyecto.cover_art : getCoverArtDefault();
         const serviciosArray = parseServicios(proyecto.servicios);
 
         return `
@@ -150,13 +151,8 @@ function renderProyectos(proyectos) {
     });
 }
 
-function getCoverArt(titulo) {
-    // Si el proyecto ya tiene cover_art en la BD, usarlo
-    // Si no, usar cover por defecto
-    if (titulo && titulo.cover_art) {
-        return titulo.cover_art.startsWith('./') ? titulo.cover_art : `${COVER_ARTS_PATH}${titulo.cover_art}`;
-    }
-    // Cover art por defecto
+function getCoverArtDefault() {
+    // Cover art por defecto (SVG)
     return 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="300" height="300"%3E%3Crect fill="%23c5b8aa" width="300" height="300"/%3E%3Ctext fill="%235e1c2e" font-family="Cormorant Garamond" font-size="24" x="50%25" y="50%25" text-anchor="middle" dominant-baseline="middle"%3EDIECO MANCIPE%3C/text%3E%3C/svg%3E';
 }
 
