@@ -1,7 +1,6 @@
 // ============================================
 // AGENTE GWEN - GENERADOR DE PDFs
 // Basado en generar_orden_compra.py (DM-ORD-MAR-001)
-// Con soporte para múltiples páginas y text wrapping
 // ============================================
 
 const PDF_CONFIG = {
@@ -15,11 +14,11 @@ const PDF_CONFIG = {
     },
     margins: {
         top: 20,
-        bottom: 20,
+        bottom: 25,
         left: 20,
         right: 20
     },
-    pageWidth: 215.9, // Letter en mm
+    pageWidth: 215.9,
     pageHeight: 279.4
 };
 
@@ -55,24 +54,24 @@ class PDFManager {
         this.y = PDF_CONFIG.margins.top;
         this.pageNum = 1;
         this.colors = PDF_CONFIG.colors;
+        this.totalPages = 1;
     }
 
-    // Verificar si hay espacio, si no crear nueva página
-    checkSpace(neededHeight) {
-        const availableSpace = PDF_CONFIG.pageHeight - PDF_CONFIG.margins.bottom - this.y;
-        if (availableSpace < neededHeight) {
-            this.addPage();
-        }
+    // Obtener espacio disponible
+    getAvailableSpace() {
+        return PDF_CONFIG.pageHeight - PDF_CONFIG.margins.bottom - this.y;
     }
 
+    // Agregar nueva página
     addPage() {
         this.doc.addPage('letter', 'portrait');
         this.y = PDF_CONFIG.margins.top;
         this.pageNum++;
+        this.totalPages++;
     }
 
-    // Draw text con wrapping automático
-    textWrapped(text, x, y, maxWidth, lineHeight = 5, fontSize = 9) {
+    // Draw text con wrapping
+    textWrapped(text, x, y, maxWidth, lineHeight = 4, fontSize = 7) {
         this.doc.setFontSize(fontSize);
         const words = text.split(' ');
         let line = '';
@@ -145,7 +144,7 @@ async function generarPDF(datos, opciones = {}) {
         drawClientTable(pdf, datos.cliente);
         pdf.y += 15;
 
-        // 5. DETALLE DE SERVICIOS (puede ocupar múltiples páginas)
+        // 5. DETALLE DE SERVICIOS
         drawServicesTable(pdf, datos.items, moneda, incluirIva);
         pdf.y += 15;
 
@@ -165,7 +164,7 @@ async function generarPDF(datos, opciones = {}) {
         drawSignatures(pdf, datos.cliente);
 
         // 10. FOOTER (en cada página)
-        addFooterToAllPages(doc, pdf.pageNum);
+        addFooterToAllPages(doc, pdf.totalPages);
 
         // Guardar PDF
         const filename = outputName || `${tipo}_${datos.numero || 'sin_numero'}.pdf`;
@@ -188,13 +187,11 @@ function drawHeader(pdf) {
     const { doc, y, colors } = pdf;
     const margin = PDF_CONFIG.margins.left;
 
-    // Columna izquierda: DIECO MANCIPE
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(26);
     doc.setTextColor(colors.burgundy);
     doc.text('DIECO MANCIPE', margin, y + 12);
 
-    // Columna derecha: Info de contacto
     const infoX = PDF_CONFIG.pageWidth - margin - 70;
 
     doc.setFont('helvetica', 'normal');
@@ -216,14 +213,12 @@ function drawOrderHeader(pdf, tipo, moneda) {
     const { doc, y, colors } = pdf;
     const margin = PDF_CONFIG.margins.left;
 
-    // Izquierda: Título
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(18);
     doc.setTextColor(colors.burgundy);
     const titulo = tipo === 'orden' ? 'ORDEN DE COMPRA' : 'FACTURA';
     doc.text(titulo, margin, y + 6);
 
-    // Derecha: Fecha y Moneda
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
     doc.setTextColor(colors.dark);
@@ -239,7 +234,6 @@ function drawClientTable(pdf, cliente) {
     const margin = PDF_CONFIG.margins.left;
     const contentWidth = PDF_CONFIG.pageWidth - (margin * 2);
 
-    // Título
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(12);
     doc.setTextColor(colors.burgundy);
@@ -249,7 +243,6 @@ function drawClientTable(pdf, cliente) {
     const rowHeight = 8;
     const labelWidth = 40;
 
-    // Datos del cliente
     const rows = [
         ['NOMBRE:', cliente.nombre || '-'],
         ['EMAIL:', cliente.email || '-'],
@@ -260,25 +253,24 @@ function drawClientTable(pdf, cliente) {
         rows.push(['DOCUMENTO:', cliente.documento]);
     }
 
-    // Verificar espacio
-    pdf.checkSpace((rows.length * rowHeight) + 20);
+    // Verificar espacio (agregamos 20mm de margen)
+    const neededSpace = (rows.length * rowHeight) + 20;
+    if (pdf.getAvailableSpace() < neededSpace) {
+        pdf.addPage();
+    }
 
-    // Dibujar filas
     rows.forEach((row, idx) => {
         const currentY = tableY + (idx * rowHeight);
         const bgColor = idx % 2 === 0 ? colors.creamLight : colors.white;
 
-        // Fondo
         doc.setFillColor(bgColor);
         doc.rect(margin, currentY - 6, contentWidth, rowHeight, 'F');
 
-        // Label
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(9);
         doc.setTextColor(colors.taupe);
         doc.text(row[0], margin + 3, currentY);
 
-        // Valor (con wrapping si es muy largo)
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(colors.dark);
 
@@ -286,13 +278,12 @@ function drawClientTable(pdf, cliente) {
         const maxWidth = contentWidth - labelWidth - 6;
 
         if (doc.getTextWidth(value) > maxWidth) {
-            pdf.textWrapped(value, margin + labelWidth + 3, currentY, maxWidth, rowHeight, 8);
+            pdf.textWrapped(value, margin + labelWidth + 3, currentY, maxWidth, rowHeight, 7);
         } else {
             doc.text(value, margin + labelWidth + 3, currentY);
         }
     });
 
-    // Borde
     doc.setDrawColor(colors.taupe);
     doc.setLineWidth(0.3);
     doc.rect(margin, tableY - 6, contentWidth, rows.length * rowHeight);
@@ -302,7 +293,7 @@ function drawClientTable(pdf, cliente) {
 
 // ===== 5. SERVICES TABLE =====
 function drawServicesTable(pdf, items, moneda, incluirIva) {
-    const { doc, y, colors } = pdf;
+    const { doc, colors } = pdf;
     const margin = PDF_CONFIG.margins.left;
     const contentWidth = PDF_CONFIG.pageWidth - (margin * 2);
 
@@ -310,14 +301,50 @@ function drawServicesTable(pdf, items, moneda, incluirIva) {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(12);
     doc.setTextColor(colors.burgundy);
-    doc.text('DETALLE DE SERVICIOS', margin, y);
+    doc.text('DETALLE DE SERVICIOS', margin, pdf.y);
 
-    let tableY = y + 10;
-    const rowHeight = 7;
+    let tableY = pdf.y + 10;
+    const rowHeight = 8;
 
     // Encabezados
     const headers = ['#', 'Ítem', 'Proyecto', 'ID', 'P. Unit', 'Cant', 'Subtotal'];
-    const colWidths = [8, 40, 35, 20, 25, 15, 27];
+    const colWidths = [8, 35, 35, 20, 25, 15, 32];
+
+    // Calcular filas necesarias
+    const itemRows = items.map((item, idx) => {
+        const precioUnit = item.precio_unitario || item.valorUnitario || 0;
+        const cantidad = item.cantidad || 1;
+        const subtotal = precioUnit * cantidad;
+
+        return {
+            num: idx + 1,
+            nombre: item.nombre || item.descripcion || '',
+            proyecto: item.proyecto || '',
+            id: item.id || '',
+            precio: precioUnit,
+            cantidad: cantidad,
+            subtotal: subtotal
+        };
+    });
+
+    // Calcular espacio total necesario
+    const headerHeight = rowHeight + 5;
+    const itemsHeight = itemRows.length * rowHeight;
+    const totalsHeight = incluirIva ? 25 : 20;
+    const totalNeeded = headerHeight + itemsHeight + totalsHeight + 30;
+
+    // Si no cabe todo, saltar a nueva página
+    if (pdf.getAvailableSpace() < totalNeeded) {
+        pdf.addPage();
+        tableY = pdf.y + 10;
+
+        // Redibujar título en nueva página
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12);
+        doc.setTextColor(colors.burgundy);
+        doc.text('DETALLE DE SERVICIOS (cont.)', margin, pdf.y);
+        tableY = pdf.y + 10;
+    }
 
     // Header background
     doc.setFillColor(colors.burgundy);
@@ -334,26 +361,39 @@ function drawServicesTable(pdf, items, moneda, incluirIva) {
         x += colWidths[i];
     });
 
-    pdf.y = tableY + rowHeight;
-
     // Items
     let totalSinIva = 0;
+    let currentY = tableY + rowHeight;
 
-    items.forEach((item, idx) => {
-        // Verificar espacio para nueva fila
-        pdf.checkSpace(rowHeight + 10);
+    itemRows.forEach((item, idx) => {
+        // Verificar si necesitamos nueva página para esta fila
+        if (currentY + rowHeight > PDF_CONFIG.pageHeight - PDF_CONFIG.margins.bottom - 50) {
+            pdf.addPage();
 
-        const currentY = pdf.y;
+            // Redibujar headers en nueva página
+            const newTableY = pdf.y + 5;
+            doc.setFillColor(colors.burgundy);
+            doc.rect(margin, newTableY - 5, contentWidth, rowHeight, 'F');
+
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(7);
+            doc.setTextColor('#ffffff');
+
+            x = margin + 3;
+            headers.forEach((header, i) => {
+                doc.text(header, x, newTableY);
+                x += colWidths[i];
+            });
+
+            currentY = newTableY + rowHeight;
+        }
+
+        totalSinIva += item.subtotal;
         const bgColor = idx % 2 === 0 ? colors.cream : colors.creamLight;
 
-        // Fondo alternado
+        // Fondo
         doc.setFillColor(bgColor);
         doc.rect(margin, currentY - 5, contentWidth, rowHeight, 'F');
-
-        const precioUnit = item.precio_unitario || item.valorUnitario || 0;
-        const cantidad = item.cantidad || 1;
-        const subtotal = precioUnit * cantidad;
-        totalSinIva += subtotal;
 
         // Texto
         doc.setFont('helvetica', 'normal');
@@ -362,48 +402,46 @@ function drawServicesTable(pdf, items, moneda, incluirIva) {
 
         x = margin + 3;
 
-        // Columnas
-        doc.text((idx + 1).toString(), x, currentY);
+        // Número
+        doc.text(item.num.toString(), x, currentY);
         x += colWidths[0];
 
         // Ítem (con wrapping)
-        const itemName = item.nombre || item.descripcion || '';
-        if (doc.getTextWidth(itemName) > colWidths[1] - 3) {
-            pdf.textWrapped(itemName, x, currentY - 2, colWidths[1] - 3, 3.5, 6);
+        if (doc.getTextWidth(item.nombre) > colWidths[1] - 3) {
+            pdf.textWrapped(item.nombre, x, currentY - 2, colWidths[1] - 3, 3.5, 6);
         } else {
-            doc.text(itemName, x, currentY);
+            doc.text(item.nombre, x, currentY);
         }
         x += colWidths[1];
 
         // Proyecto (con wrapping)
-        const proyecto = item.proyecto || '';
-        if (doc.getTextWidth(proyecto) > colWidths[2] - 3) {
-            pdf.textWrapped(proyecto, x, currentY - 2, colWidths[2] - 3, 3.5, 6);
+        if (doc.getTextWidth(item.proyecto) > colWidths[2] - 3) {
+            pdf.textWrapped(item.proyecto, x, currentY - 2, colWidths[2] - 3, 3.5, 6);
         } else {
-            doc.text(proyecto, x, currentY);
+            doc.text(item.proyecto, x, currentY);
         }
         x += colWidths[2];
 
         // ID
-        doc.text(item.id || '', x, currentY);
+        doc.text(item.id, x, currentY);
         x += colWidths[3];
 
-        // Precio Unit
-        doc.text(formatCurrency(precioUnit, moneda), x + colWidths[4] - 3, currentY, { align: 'right' });
+        // Precio
+        doc.text(formatCurrency(item.precio, moneda), x + colWidths[4] - 3, currentY, { align: 'right' });
         x += colWidths[4];
 
         // Cantidad
-        doc.text(cantidad.toString(), x + colWidths[5] - 3, currentY, { align: 'right' });
+        doc.text(item.cantidad.toString(), x + colWidths[5] - 3, currentY, { align: 'right' });
         x += colWidths[5];
 
         // Subtotal
-        doc.text(formatCurrency(subtotal, moneda), x + colWidths[6] - 3, currentY, { align: 'right' });
+        doc.text(formatCurrency(item.subtotal, moneda), x + colWidths[6] - 3, currentY, { align: 'right' });
 
-        pdf.y = currentY + rowHeight;
+        currentY += rowHeight;
     });
 
     // Totales
-    const totalsY = pdf.y + 5;
+    const totalsY = currentY + 5;
     let iva = 0;
     let totalFinal = totalSinIva;
 
@@ -431,7 +469,7 @@ function drawServicesTable(pdf, items, moneda, incluirIva) {
     doc.text(`TOTAL (${moneda}):`, PDF_CONFIG.pageWidth - margin - 55, totalsY + 14);
     doc.text(formatCurrency(totalFinal, moneda), PDF_CONFIG.pageWidth - margin - 5, totalsY + 14, { align: 'right' });
 
-    // Borde de totales
+    // Borde
     doc.setDrawColor(colors.dark);
     doc.setLineWidth(0.5);
     doc.line(PDF_CONFIG.pageWidth - margin - 60, totalsY + 10, PDF_CONFIG.pageWidth - margin, totalsY + 10);
@@ -445,7 +483,11 @@ function drawPaymentTable(pdf, moneda) {
     const margin = PDF_CONFIG.margins.left;
     const contentWidth = PDF_CONFIG.pageWidth - (margin * 2);
 
-    // Título
+    // Verificar espacio
+    if (pdf.getAvailableSpace() < 50) {
+        pdf.addPage();
+    }
+
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(12);
     doc.setTextColor(colors.burgundy);
@@ -485,18 +527,15 @@ function drawPaymentColumns(pdf, y, colWidth, rowHeight, data) {
     data.forEach((row, idx) => {
         const currentY = y + (idx * rowHeight);
 
-        // Fondo
         if (idx === 0) {
             doc.setFillColor(colors.cream);
         } else {
             doc.setFillColor(idx % 2 === 1 ? colors.creamLight : colors.white);
         }
 
-        // Columnas
         doc.rect(margin, currentY - 4, colWidth - 5, rowHeight, 'F');
         doc.rect(margin + colWidth + 5, currentY - 4, colWidth - 5, rowHeight, 'F');
 
-        // Texto
         doc.setFont('helvetica', idx === 0 ? 'bold' : 'normal');
         doc.setFontSize(idx === 0 ? 9 : 7);
         doc.setTextColor(colors.dark);
@@ -504,7 +543,6 @@ function drawPaymentColumns(pdf, y, colWidth, rowHeight, data) {
         doc.text(row[1], margin + colWidth + 8, currentY);
     });
 
-    // Bordes
     doc.setDrawColor(colors.taupe);
     doc.setLineWidth(0.3);
     doc.rect(margin, y - 4, colWidth - 5, data.length * rowHeight);
@@ -527,6 +565,11 @@ function drawConditions(pdf) {
     const { doc, y, colors } = pdf;
     const margin = PDF_CONFIG.margins.left;
 
+    // Verificar espacio
+    if (pdf.getAvailableSpace() < 30) {
+        pdf.addPage();
+    }
+
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(11);
     doc.setTextColor(colors.burgundy);
@@ -540,7 +583,7 @@ function drawConditions(pdf) {
     ];
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
+    doc.setFontSize(7);
     doc.setTextColor(colors.dark);
 
     conditions.forEach((cond, idx) => {
@@ -553,19 +596,19 @@ function drawSignatures(pdf, cliente) {
     const { doc, y, colors } = pdf;
     const pageWidth = PDF_CONFIG.pageWidth;
 
+    // Verificar espacio
+    if (pdf.getAvailableSpace() < 50) {
+        pdf.addPage();
+    }
+
     const leftX = (pageWidth / 2) - 45;
     const rightX = (pageWidth / 2) + 10;
 
-    // Verificar espacio
-    pdf.checkSpace(40);
-
-    // Líneas
     doc.setDrawColor(colors.dark);
     doc.setLineWidth(0.3);
     doc.line(leftX, y, leftX + 90, y);
     doc.line(rightX, y, rightX + 90, y);
 
-    // Dieco
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
     doc.setTextColor(colors.burgundy);
@@ -577,12 +620,10 @@ function drawSignatures(pdf, cliente) {
     doc.text('Proveedor / Sound Engineer', leftX + 45, y + 12, { align: 'center' });
     doc.text('CC: 1052416657', leftX + 45, y + 17, { align: 'center' });
 
-    // Cliente
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
     doc.setTextColor(colors.burgundy);
 
-    // Nombre del cliente con wrapping
     const clienteNombre = cliente.nombre || 'Cliente';
     if (doc.getTextWidth(clienteNombre) > 85) {
         pdf.textWrapped(clienteNombre, rightX + 45, y + 5, 85, 5, 8);
@@ -608,19 +649,16 @@ function addFooterToAllPages(doc, totalPages) {
     for (let i = 1; i <= totalPages; i++) {
         doc.setPage(i);
 
-        // Línea
         doc.setDrawColor(colors.taupe);
         doc.setLineWidth(0.3);
         doc.line(20, pageHeight - 18, pageWidth - 20, pageHeight - 18);
 
-        // Texto
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(7);
         doc.setTextColor(colors.taupe);
         doc.text('DIECO MANCIPE - Sound Engineer & Music Producer | diegomancipe33@gmail.com | +57 (311) 537-8821',
                  pageWidth / 2, pageHeight - 13, { align: 'center' });
 
-        // Número de página
         doc.text(`Página ${i} de ${totalPages}`, pageWidth - 25, pageHeight - 13);
     }
 }
@@ -642,7 +680,7 @@ function formatCurrency(amount, currency) {
 }
 
 async function loadJspdf() {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
         if (window.jspdf) {
             resolve();
             return;
@@ -651,7 +689,6 @@ async function loadJspdf() {
         const script = document.createElement('script');
         script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
         script.onload = resolve;
-        script.onerror = reject;
         document.head.appendChild(script);
     });
 }
