@@ -738,9 +738,15 @@ body {
     }
 
     .sidebar-balance,
-    .sidebar-footer,
-    .btn-logout {
+    .sidebar-footer {
         display: none;
+    }
+
+    .btn-logout {
+        display: block;
+        margin: 1rem auto;
+        width: 100%;
+        max-width: 200px;
     }
 
     .metrics-grid {
@@ -795,6 +801,14 @@ body {
 
     .nav-item .icon {
         font-size: 1.2rem;
+    }
+
+    /* Botón cerrar sesión en mobile */
+    .btn-logout {
+        display: block;
+        margin: 1rem auto;
+        width: 90%;
+        max-width: 250px;
     }
 
     /* Main content */
