@@ -16,10 +16,10 @@ let filtroServicio = "todos";
 let filtroAnio = "todos";
 
 // ===== CLIENTE SUPABASE SIMPLE =====
-const supabase = {
-    from: (table) => ({
-        select: (columns = '*', filters = {}) => ({
-            then: (callback) => {
+function createSupabaseClient() {
+    return {
+        from: (table) => ({
+            select: async function(columns = '*', filters = {}) {
                 // Construir query params con filtros
                 const params = new URLSearchParams();
                 params.set('select', columns);
@@ -31,20 +31,25 @@ const supabase = {
 
                 const url = `${SUPABASE_URL}/rest/v1/${table}?${params.toString()}`;
 
-                fetch(url, {
-                    headers: {
-                        'apikey': SUPABASE_ANON_KEY,
-                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                        'Content-Type': 'application/json'
-                    }
-                })
-                .then(res => res.json())
-                .then(data => callback({ data, error: null }))
-                .catch(err => callback({ data: null, error: err }));
+                try {
+                    const res = await fetch(url, {
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    const data = await res.json();
+                    return { data, error: null };
+                } catch (err) {
+                    return { data: null, error: err };
+                }
             }
         })
-    })
-};
+    };
+}
+
+const supabase = createSupabaseClient();
 
 // ===== FUNCIONES PRINCIPALES =====
 
@@ -54,10 +59,12 @@ async function cargarProyectos() {
 
     try {
         // Filtros en la URL de Supabase
-        const { data: proyectos, error } = await supabase
+        const result = await supabase
             .from(TABLE_NAME)
-            .select('*', { activo: true })
-            .then(result => result);
+            .select('*', { activo: true });
+
+        const proyectos = result.data;
+        const error = result.error;
 
         if (error) {
             console.error('Error Supabase:', error);
