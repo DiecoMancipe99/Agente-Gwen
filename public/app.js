@@ -660,7 +660,10 @@ async function loadProyectosTabla() {
                                 <option value="RELEASE" ${p.estatus === 'RELEASE' ? 'selected' : ''}>RELEASE</option>
                             </select>
                         </td>
-                        <td><button class="btn-secondary" onclick="eliminarProyecto('${p.id}')" style="font-size:0.65rem;padding:0.25rem 0.5rem;">🗑️ Eliminar</button></td>
+                        <td>
+                            <button class="btn-secondary" onclick="generarFacturaProyecto('${p.id}')" style="font-size:0.65rem;padding:0.25rem 0.5rem;">📄 Generar</button>
+                            <button class="btn-secondary" onclick="eliminarProyecto('${p.id}')" style="font-size:0.65rem;padding:0.25rem 0.5rem;margin-left:0.25rem;">🗑️ Eliminar</button>
+                        </td>
                     </tr>
                 `;
             }).join('')}
@@ -1522,6 +1525,214 @@ async function init() {
 // Start app
 init();
 
+// ===== GENERAR FACTURA/ORDEN DE PROYECTO =====
+async function generarFacturaProyecto(proyectoId) {
+    // Obtener datos del proyecto
+    const { data: proyectos } = await supabase.from('proyectos')
+        .select('*, clientes(nombre, contacto_email, contacto_telefono)');
+
+    const proyecto = proyectos?.find(p => p.id === proyectoId);
+
+    if (!proyecto) {
+        alert('Proyecto no encontrado');
+        return;
+    }
+
+    // Obtener ingresos/pagos del proyecto
+    const { data: ingresos } = await supabase.from('ingresos')
+        .select('*')
+        .then(cb => cb.data || []);
+
+    const pagosProyecto = (ingresos || []).filter(i => i.proyecto_id === proyectoId);
+
+    // Calcular pagado y pendiente
+    const pagado = pagosProyecto.reduce((sum, p) => sum + (parseFloat(p.monto) || 0), 0);
+    const pendiente = (proyecto.precio_total || 0) - pagado;
+
+    // Mostrar modal de opciones
+    mostrarModalFactura(proyecto, pagado, pendiente, pagosProyecto);
+}
+
+function mostrarModalFactura(proyecto, pagado, pendiente, pagos) {
+    const modal = document.createElement('div');
+    modal.id = 'modal-factura';
+    modal.className = 'modal-overlay';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    `;
+
+    const cliente = proyecto.clientes || {};
+    const numeroOrden = `DM-${String(Date.now()).slice(-6)}`;
+
+    modal.innerHTML = `
+        <div style="background: var(--color-cream); border-radius: 8px; padding: 2rem; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto;">
+            <h3 style="color: var(--color-primary); margin-bottom: 1.5rem; font-family: 'Cormorant Garamond', serif;">📄 Generar Documento</h3>
+
+            <div style="margin-bottom: 1.5rem;">
+                <p style="font-size: 0.9rem; margin-bottom: 0.5rem;"><strong>Proyecto:</strong> ${proyecto.nombre_proyecto}</p>
+                <p style="font-size: 0.9rem; margin-bottom: 0.5rem;"><strong>Cliente:</strong> ${cliente.nombre || 'N/A'}</p>
+                <p style="font-size: 0.9rem; margin-bottom: 0.5rem;"><strong>Total:</strong> ${formatCurrency(proyecto.precio_total)}</p>
+                <p style="font-size: 0.9rem; margin-bottom: 0.5rem;"><strong>Pagado:</strong> ${formatCurrency(pagado)}</p>
+                <p style="font-size: 0.9rem; margin-bottom: 1rem;"><strong>Pendiente:</strong> ${formatCurrency(pendiente)}</p>
+            </div>
+
+            <form id="form-generar-factura" style="display: flex; flex-direction: column; gap: 1rem;">
+                <div>
+                    <label style="display: block; font-size: 0.85rem; margin-bottom: 0.5rem;">Tipo de documento:</label>
+                    <select id="factura-tipo" style="width: 100%; padding: 0.5rem; border: 1px solid rgba(94,28,46,0.3); border-radius: 4px;">
+                        <option value="orden">Orden de Compra</option>
+                        <option value="factura">Factura</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label style="display: block; font-size: 0.85rem; margin-bottom: 0.5rem;">Moneda:</label>
+                    <select id="factura-moneda" style="width: 100%; padding: 0.5rem; border: 1px solid rgba(94,28,46,0.3); border-radius: 4px;">
+                        <option value="COP">COP (Pesos Colombianos)</option>
+                        <option value="USD">USD (Dólares)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label style="display: block; font-size: 0.85rem; margin-bottom: 0.5rem;">Concepto:</label>
+                    <select id="factura-concepto" style="width: 100%; padding: 0.5rem; border: 1px solid rgba(94,28,46,0.3); border-radius: 4px;" onchange="toggleConceptoCustom()">
+                        <option value="servicios">Servicios de Producción Musical</option>
+                        <option value="grabacion">Servicios de Grabación</option>
+                        <option value="mezcla">Servicios de Mezcla</option>
+                        <option value="masterizacion">Servicios de Masterización</option>
+                        <option value="completo">Producción Completa</option>
+                        <option value="custom">Personalizado</option>
+                    </select>
+                </div>
+
+                <div id="concepto-custom-group" style="display: none;">
+                    <label style="display: block; font-size: 0.85rem; margin-bottom: 0.5rem;">Descripción del concepto:</label>
+                    <input type="text" id="factura-concepto-custom" placeholder="Ej: Producción, mezcla y masterización de..." style="width: 100%; padding: 0.5rem; border: 1px solid rgba(94,28,46,0.3); border-radius: 4px;">
+                </div>
+
+                <div>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem;">
+                        <input type="checkbox" id="factura-incluir-iva">
+                        Incluir IVA (19%)
+                    </label>
+                </div>
+
+                <div>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem;">
+                        <input type="checkbox" id="factura-mostrar-pagado" checked>
+                        Mostrar pagos realizados
+                    </label>
+                </div>
+
+                <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                    <button type="button" onclick="cerrarModalFactura()" style="flex: 1; padding: 0.75rem; border: 1px solid var(--color-taupe); border-radius: 4px; background: transparent; cursor: pointer; font-size: 0.85rem;">Cancelar</button>
+                    <button type="submit" class="btn-primary" style="flex: 1; padding: 0.75rem; border: none; border-radius: 4px; background: var(--color-primary); color: white; cursor: pointer; font-size: 0.85rem;">Generar PDF</button>
+                </div>
+            </form>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Toggle concepto custom
+    window.toggleConceptoCustom = function() {
+        const select = document.getElementById('factura-concepto');
+        const customGroup = document.getElementById('concepto-custom-group');
+        customGroup.style.display = select.value === 'custom' ? 'block' : 'none';
+    };
+
+    // Submit handler
+    document.getElementById('form-generar-factura').addEventListener('submit', (e) => {
+        e.preventDefault();
+
+        const tipo = document.getElementById('factura-tipo').value;
+        const moneda = document.getElementById('factura-moneda').value;
+        const incluirIva = document.getElementById('factura-incluir-iva').checked;
+        const mostrarPagado = document.getElementById('factura-mostrar-pagado').checked;
+        const concepto = document.getElementById('factura-concepto').value;
+        const conceptoCustom = document.getElementById('factura-concepto-custom').value;
+
+        // Preparar datos para el PDF
+        const conceptoFinal = concepto === 'custom' ? (conceptoCustom || 'Servicios profesionales') : getConceptoLabel(concepto);
+
+        const items = [];
+
+        if (mostrarPagado && pagado > 0) {
+            items.push({
+                descripcion: `${conceptoFinal} - Pago inicial`,
+                cantidad: 1,
+                valorUnitario: pagado
+            });
+        }
+
+        if (pendiente > 0) {
+            items.push({
+                descripcion: `${conceptoFinal} - Saldo pendiente`,
+                cantidad: 1,
+                valorUnitario: pendiente
+            });
+        }
+
+        // Si no hay pagos, poner el total como un solo item
+        if (items.length === 0) {
+            items.push({
+                descripcion: conceptoFinal,
+                cantidad: 1,
+                valorUnitario: proyecto.precio_total || 0
+            });
+        }
+
+        const datosPDF = {
+            numero: numeroOrden,
+            fecha: new Date().toLocaleDateString('es-CO'),
+            cliente: {
+                nombre: cliente.nombre || 'Cliente',
+                email: cliente.contacto_email || '',
+                telefono: cliente.contacto_telefono || '',
+                proyecto: proyecto.nombre_proyecto
+            },
+            items: items
+        };
+
+        // Generar PDF
+        generarPDF(datosPDF, {
+            tipo,
+            moneda,
+            incluirIva,
+            outputName: `${tipo}_${numeroOrden}.pdf`
+        });
+
+        cerrarModalFactura();
+    });
+}
+
+function getConceptoLabel(concepto) {
+    const labels = {
+        'servicios': 'Servicios de Producción Musical',
+        'grabacion': 'Servicios de Grabación',
+        'mezcla': 'Servicios de Mezcla',
+        'masterizacion': 'Servicios de Masterización',
+        'completo': 'Producción Musical Completa'
+    };
+    return labels[concepto] || 'Servicios profesionales';
+}
+
+function cerrarModalFactura() {
+    const modal = document.getElementById('modal-factura');
+    if (modal) {
+        modal.remove();
+    }
+}
+
 // ===== GLOBAL FUNCTIONS (for onclick handlers) =====
 window.deleteCliente = deleteCliente;
 window.eliminarIngreso = eliminarIngreso;
@@ -1531,3 +1742,4 @@ window.eliminarDeuda = eliminarDeuda;
 window.eliminarSesion = eliminarSesion;
 window.cambiarEstatusProyecto = cambiarEstatusProyecto;
 window.registrarPagoDeuda = registrarPagoDeuda;
+window.generarFacturaProyecto = generarFacturaProyecto;
