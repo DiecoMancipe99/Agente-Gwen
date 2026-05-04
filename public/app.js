@@ -1513,12 +1513,52 @@ function setupTabs() {
     });
 }
 
+// ===== MOBILE MENU TOGGLE =====
+function setupMobileMenu() {
+    const menuToggle = document.getElementById('menu-toggle');
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+
+    if (!menuToggle || !sidebar) return;
+
+    // Abrir menú
+    menuToggle.addEventListener('click', () => {
+        sidebar.classList.add('active');
+        overlay.classList.add('active');
+    });
+
+    // Cerrar menú con overlay
+    if (overlay) {
+        overlay.addEventListener('click', () => {
+            sidebar.classList.remove('active');
+            overlay.classList.remove('active');
+        });
+    }
+
+    // Cerrar menú al navegar
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', () => {
+            sidebar.classList.remove('active');
+            overlay.classList.remove('active');
+        });
+    });
+
+    // Cerrar con ESC
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            sidebar.classList.remove('active');
+            overlay.classList.remove('active');
+        }
+    });
+}
+
 // ===== INIT =====
 async function init() {
     setupNavigation();
     setupForms();
     setupTabs();
     setupModalCliente();
+    setupMobileMenu();
     await checkAuth();
 }
 
