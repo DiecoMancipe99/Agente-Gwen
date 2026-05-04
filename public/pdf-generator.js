@@ -98,7 +98,7 @@ async function generarPDF(datos, opciones = {}) {
 
         // ===== FIRMAS =====
         console.log('[PDF] Dibujando firmas...');
-        drawSignatures(doc, margin, contentWidth, pageHeight - 40);
+        drawSignatures(doc, pageWidth, margin, contentWidth, pageHeight - 40);
 
         // ===== FOOTER =====
         console.log('[PDF] Dibujando footer...');
@@ -318,7 +318,7 @@ function drawPaymentInfo(doc, margin, contentWidth, yPos) {
 }
 
 // ===== FIRMAS =====
-function drawSignatures(doc, margin, contentWidth, yPos) {
+function drawSignatures(doc, pageWidth, margin, contentWidth, yPos) {
     const colors = PDF_CONFIG.colors;
     const signatureWidth = 60;
     const gap = 40;
