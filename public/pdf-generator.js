@@ -1,6 +1,5 @@
 // ============================================
 // AGENTE GWEN - GENERADOR DE PDFs
-// Basado en generar_orden_compra.py (DM-ORD-MAR-001)
 // ============================================
 
 const PDF_CONFIG = {
@@ -24,7 +23,6 @@ const PDF_CONFIG = {
 
 const COMPANY_INFO = {
     name: 'DIECO MANCIPE',
-    title: 'Productor Musical & Ingeniero de Sonido',
     email: 'diegomancipe33@gmail.com',
     phone: '+57 (311) 537-8821',
     address: 'Calle 140 # 11-45 Of 617 Torre HHC, Bogotá',
@@ -53,16 +51,14 @@ class PDFManager {
         this.doc = doc;
         this.y = PDF_CONFIG.margins.top;
         this.pageNum = 1;
-        this.colors = PDF_CONFIG.colors;
         this.totalPages = 1;
+        this.colors = PDF_CONFIG.colors;
     }
 
-    // Obtener espacio disponible
     getAvailableSpace() {
         return PDF_CONFIG.pageHeight - PDF_CONFIG.margins.bottom - this.y;
     }
 
-    // Agregar nueva página
     addPage() {
         this.doc.addPage('letter', 'portrait');
         this.y = PDF_CONFIG.margins.top;
@@ -70,7 +66,6 @@ class PDFManager {
         this.totalPages++;
     }
 
-    // Draw text con wrapping
     textWrapped(text, x, y, maxWidth, lineHeight = 4, fontSize = 7) {
         this.doc.setFontSize(fontSize);
         const words = text.split(' ');
@@ -97,7 +92,6 @@ class PDFManager {
         return lines.length * lineHeight;
     }
 
-    // Draw línea divisoria
     drawDivider(y) {
         this.doc.setDrawColor(this.colors.burgundy);
         this.doc.setLineWidth(0.5);
@@ -113,8 +107,6 @@ async function generarPDF(datos, opciones = {}) {
         incluirIva = false,
         outputName = null
     } = opciones;
-
-    console.log('[PDF] Generando PDF...', { datos, opciones });
 
     try {
         await loadJspdf();
@@ -144,8 +136,8 @@ async function generarPDF(datos, opciones = {}) {
         drawClientTable(pdf, datos.cliente);
         pdf.y += 15;
 
-        // 5. DETALLE DE SERVICIOS
-        drawServicesTable(pdf, datos.items, moneda, incluirIva);
+        // 5. DETALLE DE SERVICIOS - retorna la Y donde terminó
+        pdf.y = drawServicesTable(pdf, datos.items, moneda, incluirIva);
         pdf.y += 15;
 
         // 6. DATOS DE PAGO
@@ -163,20 +155,16 @@ async function generarPDF(datos, opciones = {}) {
         // 9. FIRMAS
         drawSignatures(pdf, datos.cliente);
 
-        // 10. FOOTER (en cada página)
+        // 10. FOOTER
         addFooterToAllPages(doc, pdf.totalPages);
 
-        // Guardar PDF
         const filename = outputName || `${tipo}_${datos.numero || 'sin_numero'}.pdf`;
-        console.log('[PDF] Guardando archivo:', filename);
         doc.save(filename);
 
-        console.log('[PDF] PDF guardado exitosamente');
         alert('✅ PDF generado exitosamente');
-
         return doc;
     } catch (error) {
-        console.error('[PDF] Error generando PDF:', error);
+        console.error('[PDF] Error:', error);
         alert('❌ Error al generar PDF: ' + error.message);
         throw error;
     }
@@ -193,7 +181,6 @@ function drawHeader(pdf) {
     doc.text('DIECO MANCIPE', margin, y + 12);
 
     const infoX = PDF_CONFIG.pageWidth - margin - 70;
-
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
     doc.setTextColor(colors.dark);
@@ -241,23 +228,20 @@ function drawClientTable(pdf, cliente) {
 
     const tableY = y + 8;
     const rowHeight = 8;
-    const labelWidth = 40;
 
     const rows = [
         ['NOMBRE:', cliente.nombre || '-'],
         ['EMAIL:', cliente.email || '-'],
         ['TELÉFONO:', cliente.telefono || '-']
     ];
+    if (cliente.documento) rows.push(['DOCUMENTO:', cliente.documento]);
 
-    if (cliente.documento) {
-        rows.push(['DOCUMENTO:', cliente.documento]);
-    }
-
-    // Verificar espacio (agregamos 20mm de margen)
     const neededSpace = (rows.length * rowHeight) + 20;
     if (pdf.getAvailableSpace() < neededSpace) {
         pdf.addPage();
     }
+
+    const labelWidth = 40;
 
     rows.forEach((row, idx) => {
         const currentY = tableY + (idx * rowHeight);
@@ -273,7 +257,6 @@ function drawClientTable(pdf, cliente) {
 
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(colors.dark);
-
         const value = row[1];
         const maxWidth = contentWidth - labelWidth - 6;
 
@@ -296,6 +279,7 @@ function drawServicesTable(pdf, items, moneda, incluirIva) {
     const { doc, colors } = pdf;
     const margin = PDF_CONFIG.margins.left;
     const contentWidth = PDF_CONFIG.pageWidth - (margin * 2);
+    const rowHeight = 8;
 
     // Título
     doc.setFont('helvetica', 'bold');
@@ -304,109 +288,75 @@ function drawServicesTable(pdf, items, moneda, incluirIva) {
     doc.text('DETALLE DE SERVICIOS', margin, pdf.y);
 
     let tableY = pdf.y + 10;
-    const rowHeight = 8;
 
-    // Encabezados
+    // Headers
     const headers = ['#', 'Ítem', 'Proyecto', 'ID', 'P. Unit', 'Cant', 'Subtotal'];
     const colWidths = [8, 35, 35, 20, 25, 15, 32];
 
-    // Calcular filas necesarias
-    const itemRows = items.map((item, idx) => {
-        const precioUnit = item.precio_unitario || item.valorUnitario || 0;
-        const cantidad = item.cantidad || 1;
-        const subtotal = precioUnit * cantidad;
+    // Preparar items
+    const itemRows = items.map((item, idx) => ({
+        num: idx + 1,
+        nombre: item.nombre || item.descripcion || '',
+        proyecto: item.proyecto || '',
+        id: item.id || '',
+        precio: item.precio_unitario || item.valorUnitario || 0,
+        cantidad: item.cantidad || 1,
+        subtotal: (item.precio_unitario || item.valorUnitario || 0) * (item.cantidad || 1)
+    }));
 
-        return {
-            num: idx + 1,
-            nombre: item.nombre || item.descripcion || '',
-            proyecto: item.proyecto || '',
-            id: item.id || '',
-            precio: precioUnit,
-            cantidad: cantidad,
-            subtotal: subtotal
-        };
-    });
-
-    // Calcular espacio total necesario
+    // Calcular espacio necesario
     const headerHeight = rowHeight + 5;
     const itemsHeight = itemRows.length * rowHeight;
     const totalsHeight = incluirIva ? 25 : 20;
-    const totalNeeded = headerHeight + itemsHeight + totalsHeight + 30;
+    const totalNeeded = headerHeight + itemsHeight + totalsHeight + 40;
 
-    // Si no cabe todo, saltar a nueva página
+    // Si no cabe, nueva página
     if (pdf.getAvailableSpace() < totalNeeded) {
         pdf.addPage();
-        tableY = pdf.y + 10;
-
-        // Redibujar título en nueva página
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(12);
         doc.setTextColor(colors.burgundy);
-        doc.text('DETALLE DE SERVICIOS (cont.)', margin, pdf.y);
+        doc.text('DETALLE DE SERVICIOS', margin, pdf.y);
         tableY = pdf.y + 10;
     }
 
-    // Header background
-    doc.setFillColor(colors.burgundy);
-    doc.rect(margin, tableY - 5, contentWidth, rowHeight, 'F');
-
-    // Header text
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(7);
-    doc.setTextColor('#ffffff');
-
-    let x = margin + 3;
-    headers.forEach((header, i) => {
-        doc.text(header, x, tableY);
-        x += colWidths[i];
-    });
+    // Dibujar header
+    drawTableHeader(doc, margin, contentWidth, tableY, rowHeight, headers, colWidths, colors);
 
     // Items
     let totalSinIva = 0;
     let currentY = tableY + rowHeight;
 
     itemRows.forEach((item, idx) => {
-        // Verificar si necesitamos nueva página para esta fila
-        if (currentY + rowHeight > PDF_CONFIG.pageHeight - PDF_CONFIG.margins.bottom - 50) {
+        // Verificar espacio para esta fila + totales
+        const spaceNeeded = rowHeight + 30;
+        if (currentY + spaceNeeded > PDF_CONFIG.pageHeight - PDF_CONFIG.margins.bottom) {
             pdf.addPage();
-
-            // Redibujar headers en nueva página
-            const newTableY = pdf.y + 5;
-            doc.setFillColor(colors.burgundy);
-            doc.rect(margin, newTableY - 5, contentWidth, rowHeight, 'F');
-
+            // Redibujar header en nueva página
+            const newTableY = PDF_CONFIG.margins.top + 10;
             doc.setFont('helvetica', 'bold');
-            doc.setFontSize(7);
-            doc.setTextColor('#ffffff');
-
-            x = margin + 3;
-            headers.forEach((header, i) => {
-                doc.text(header, x, newTableY);
-                x += colWidths[i];
-            });
-
+            doc.setFontSize(10);
+            doc.setTextColor(colors.burgundy);
+            doc.text('(continuación)', margin + 50, PDF_CONFIG.margins.top);
+            drawTableHeader(doc, margin, contentWidth, newTableY, rowHeight, headers, colWidths, colors);
             currentY = newTableY + rowHeight;
         }
 
         totalSinIva += item.subtotal;
         const bgColor = idx % 2 === 0 ? colors.cream : colors.creamLight;
 
-        // Fondo
         doc.setFillColor(bgColor);
         doc.rect(margin, currentY - 5, contentWidth, rowHeight, 'F');
 
-        // Texto
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(7);
         doc.setTextColor(colors.dark);
 
-        x = margin + 3;
-
-        // Número
+        let x = margin + 3;
         doc.text(item.num.toString(), x, currentY);
         x += colWidths[0];
 
-        // Ítem (con wrapping)
+        // Ítem con wrapping
         if (doc.getTextWidth(item.nombre) > colWidths[1] - 3) {
             pdf.textWrapped(item.nombre, x, currentY - 2, colWidths[1] - 3, 3.5, 6);
         } else {
@@ -414,7 +364,7 @@ function drawServicesTable(pdf, items, moneda, incluirIva) {
         }
         x += colWidths[1];
 
-        // Proyecto (con wrapping)
+        // Proyecto con wrapping
         if (doc.getTextWidth(item.proyecto) > colWidths[2] - 3) {
             pdf.textWrapped(item.proyecto, x, currentY - 2, colWidths[2] - 3, 3.5, 6);
         } else {
@@ -422,19 +372,13 @@ function drawServicesTable(pdf, items, moneda, incluirIva) {
         }
         x += colWidths[2];
 
-        // ID
         doc.text(item.id, x, currentY);
         x += colWidths[3];
 
-        // Precio
         doc.text(formatCurrency(item.precio, moneda), x + colWidths[4] - 3, currentY, { align: 'right' });
         x += colWidths[4];
-
-        // Cantidad
         doc.text(item.cantidad.toString(), x + colWidths[5] - 3, currentY, { align: 'right' });
         x += colWidths[5];
-
-        // Subtotal
         doc.text(formatCurrency(item.subtotal, moneda), x + colWidths[6] - 3, currentY, { align: 'right' });
 
         currentY += rowHeight;
@@ -442,39 +386,45 @@ function drawServicesTable(pdf, items, moneda, incluirIva) {
 
     // Totales
     const totalsY = currentY + 5;
-    let iva = 0;
-    let totalFinal = totalSinIva;
+    let iva = incluirIva && moneda === 'COP' ? totalSinIva * 0.19 : 0;
+    let totalFinal = totalSinIva + iva;
 
-    if (incluirIva && moneda === 'COP') {
-        iva = totalSinIva * 0.19;
-        totalFinal = totalSinIva + iva;
-    }
-
-    // Subtotal
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     doc.text('Subtotal:', PDF_CONFIG.pageWidth - margin - 55, totalsY);
     doc.text(formatCurrency(totalSinIva, moneda), PDF_CONFIG.pageWidth - margin - 5, totalsY, { align: 'right' });
 
-    // IVA
     if (incluirIva && moneda === 'COP') {
         doc.text('IVA (19%):', PDF_CONFIG.pageWidth - margin - 55, totalsY + 6);
         doc.text(formatCurrency(iva, moneda), PDF_CONFIG.pageWidth - margin - 5, totalsY + 6, { align: 'right' });
     }
 
-    // TOTAL
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(11);
     doc.setTextColor(colors.burgundy);
     doc.text(`TOTAL (${moneda}):`, PDF_CONFIG.pageWidth - margin - 55, totalsY + 14);
     doc.text(formatCurrency(totalFinal, moneda), PDF_CONFIG.pageWidth - margin - 5, totalsY + 14, { align: 'right' });
 
-    // Borde
     doc.setDrawColor(colors.dark);
     doc.setLineWidth(0.5);
     doc.line(PDF_CONFIG.pageWidth - margin - 60, totalsY + 10, PDF_CONFIG.pageWidth - margin, totalsY + 10);
 
-    pdf.y = totalsY + 20;
+    return totalsY + 20;
+}
+
+function drawTableHeader(doc, margin, contentWidth, y, rowHeight, headers, colWidths, colors) {
+    doc.setFillColor(colors.burgundy);
+    doc.rect(margin, y - 5, contentWidth, rowHeight, 'F');
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7);
+    doc.setTextColor('#ffffff');
+
+    let x = margin + 3;
+    headers.forEach((header, i) => {
+        doc.text(header, x, y);
+        x += colWidths[i];
+    });
 }
 
 // ===== 6. PAYMENT TABLE =====
@@ -483,7 +433,6 @@ function drawPaymentTable(pdf, moneda) {
     const margin = PDF_CONFIG.margins.left;
     const contentWidth = PDF_CONFIG.pageWidth - (margin * 2);
 
-    // Verificar espacio
     if (pdf.getAvailableSpace() < 50) {
         pdf.addPage();
     }
@@ -526,16 +475,9 @@ function drawPaymentColumns(pdf, y, colWidth, rowHeight, data) {
 
     data.forEach((row, idx) => {
         const currentY = y + (idx * rowHeight);
-
-        if (idx === 0) {
-            doc.setFillColor(colors.cream);
-        } else {
-            doc.setFillColor(idx % 2 === 1 ? colors.creamLight : colors.white);
-        }
-
+        doc.setFillColor(idx === 0 ? colors.cream : (idx % 2 === 1 ? colors.creamLight : colors.white));
         doc.rect(margin, currentY - 4, colWidth - 5, rowHeight, 'F');
         doc.rect(margin + colWidth + 5, currentY - 4, colWidth - 5, rowHeight, 'F');
-
         doc.setFont('helvetica', idx === 0 ? 'bold' : 'normal');
         doc.setFontSize(idx === 0 ? 9 : 7);
         doc.setTextColor(colors.dark);
@@ -552,12 +494,10 @@ function drawPaymentColumns(pdf, y, colWidth, rowHeight, data) {
 // ===== 7. PAYMENT NOTE =====
 function drawPaymentNote(pdf) {
     const { doc, y, colors } = pdf;
-
     doc.setFont('helvetica', 'italic');
     doc.setFontSize(7);
     doc.setTextColor(colors.taupe);
-    doc.text('Nota: Enviar comprobante de pago a diegomancipe33@gmail.com',
-             PDF_CONFIG.pageWidth / 2, y, { align: 'center' });
+    doc.text('Nota: Enviar comprobante a diegomancipe33@gmail.com', PDF_CONFIG.pageWidth / 2, y, { align: 'center' });
 }
 
 // ===== 8. CONDITIONS =====
@@ -565,7 +505,6 @@ function drawConditions(pdf) {
     const { doc, y, colors } = pdf;
     const margin = PDF_CONFIG.margins.left;
 
-    // Verificar espacio
     if (pdf.getAvailableSpace() < 30) {
         pdf.addPage();
     }
@@ -585,7 +524,6 @@ function drawConditions(pdf) {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7);
     doc.setTextColor(colors.dark);
-
     conditions.forEach((cond, idx) => {
         doc.text(cond, margin, y + 8 + (idx * 5));
     });
@@ -596,48 +534,54 @@ function drawSignatures(pdf, cliente) {
     const { doc, y, colors } = pdf;
     const pageWidth = PDF_CONFIG.pageWidth;
 
-    // Verificar espacio
-    if (pdf.getAvailableSpace() < 50) {
+    // Verificar espacio suficiente para firmas
+    if (pdf.getAvailableSpace() < 45) {
         pdf.addPage();
     }
 
     const leftX = (pageWidth / 2) - 45;
     const rightX = (pageWidth / 2) + 10;
+    const signatureTopY = y + 10;
 
+    // Líneas
     doc.setDrawColor(colors.dark);
     doc.setLineWidth(0.3);
-    doc.line(leftX, y, leftX + 90, y);
-    doc.line(rightX, y, rightX + 90, y);
+    doc.line(leftX, signatureTopY, leftX + 90, signatureTopY);
+    doc.line(rightX, signatureTopY, rightX + 90, signatureTopY);
 
+    // Diego
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
     doc.setTextColor(colors.burgundy);
-    doc.text('Diego Mancipe', leftX + 45, y + 7, { align: 'center' });
+    doc.text('Diego Mancipe', leftX + 45, signatureTopY + 7, { align: 'center' });
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7);
     doc.setTextColor(colors.taupe);
-    doc.text('Proveedor / Sound Engineer', leftX + 45, y + 12, { align: 'center' });
-    doc.text('CC: 1052416657', leftX + 45, y + 17, { align: 'center' });
+    doc.text('Proveedor / Sound Engineer', leftX + 45, signatureTopY + 12, { align: 'center' });
+    doc.text('CC: 1052416657', leftX + 45, signatureTopY + 17, { align: 'center' });
 
+    // Cliente
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
     doc.setTextColor(colors.burgundy);
-
     const clienteNombre = cliente.nombre || 'Cliente';
+
     if (doc.getTextWidth(clienteNombre) > 85) {
-        pdf.textWrapped(clienteNombre, rightX + 45, y + 5, 85, 5, 8);
+        pdf.textWrapped(clienteNombre, rightX + 45, signatureTopY + 5, 85, 5, 8);
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(7);
         doc.setTextColor(colors.taupe);
-        doc.text('Cliente', rightX + 45, y + 14, { align: 'center' });
+        doc.text('Cliente', rightX + 45, signatureTopY + 14, { align: 'center' });
     } else {
-        doc.text(clienteNombre, rightX + 45, y + 7, { align: 'center' });
+        doc.text(clienteNombre, rightX + 45, signatureTopY + 7, { align: 'center' });
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(7);
         doc.setTextColor(colors.taupe);
-        doc.text('Cliente', rightX + 45, y + 12, { align: 'center' });
+        doc.text('Cliente', rightX + 45, signatureTopY + 12, { align: 'center' });
     }
+
+    pdf.y = signatureTopY + 25;
 }
 
 // ===== 10. FOOTER =====
@@ -648,17 +592,14 @@ function addFooterToAllPages(doc, totalPages) {
 
     for (let i = 1; i <= totalPages; i++) {
         doc.setPage(i);
-
         doc.setDrawColor(colors.taupe);
         doc.setLineWidth(0.3);
         doc.line(20, pageHeight - 18, pageWidth - 20, pageHeight - 18);
-
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(7);
         doc.setTextColor(colors.taupe);
         doc.text('DIECO MANCIPE - Sound Engineer & Music Producer | diegomancipe33@gmail.com | +57 (311) 537-8821',
                  pageWidth / 2, pageHeight - 13, { align: 'center' });
-
         doc.text(`Página ${i} de ${totalPages}`, pageWidth - 25, pageHeight - 13);
     }
 }
@@ -685,7 +626,6 @@ async function loadJspdf() {
             resolve();
             return;
         }
-
         const script = document.createElement('script');
         script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
         script.onload = resolve;
@@ -693,7 +633,6 @@ async function loadJspdf() {
     });
 }
 
-// Exportar globalmente
 window.generarPDF = generarPDF;
 window.PDF_CONFIG = PDF_CONFIG;
 window.COMPANY_INFO = COMPANY_INFO;
