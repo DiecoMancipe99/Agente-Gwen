@@ -6,32 +6,10 @@
 const SUPABASE_URL = 'https://dbvvdvmrnakpqggxpwrg.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRidnZkdm1ybmFrcHFnZ3hwd3JnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1Nzc2MjIsImV4cCI6MjA5MzE1MzYyMn0.Bpm6rDQcYrbvqLyM-DAQfumjlKtdVL2qVqPgt42OG68';
 
-// ===== DATOS DE PROYECTOS (CON COVER ARTS) =====
-const coverArtsMapping = {
-    "Tus Brazos": "Tus Brazos.JPG",
-    "Solo Otra Vez": "Solo Otra Vez.png",
-    "PRIMITIVO (Primavera)": "PRIMITIVO (Primavera).png",
-    "Dios y Yo": "Dios y Yo.png",
-    "La Ciudad de Los Vientos": "La Ciudad de los Vientos.jpg",
-    "Mateo": "Mateo.png",
-    "La Silbaora": "Portada la silbaora.jpg",
-    "MARMOL (Invierno)": "MARMOL (Invierno).png",
-    "Siempre a Ti": "Siempre a Ti.png"
-};
-
+// ===== CONFIGURACIÓN =====
+// Ahora usamos la tabla 'proyectos_musicales' separada de la financiera 'proyectos'
+const TABLE_NAME = 'proyectos_musicales';
 const COVER_ARTS_PATH = './cover-arts/';
-
-const spotifyIds = {
-    "Tus Brazos": "1UzH8nd74uk3SsYMigISuj",
-    "Solo Otra Vez": "0kyFOrOigzJe6e8YEuywkd",
-    "PRIMITIVO (Primavera)": "79SV9FKNsHJZ59GQ1GbmIC",
-    "Dios y Yo": "1Ei5c2GshPH8tC60h7YhUo",
-    "La Ciudad de Los Vientos": "1cAwyRXZZLjfTpGPdXroIv",
-    "Mateo": "5sItxqQUQFpFO9rB5ZJ6kr",
-    "La Silbaora": "0LPUTxHF3Aq73pt7SWTgrQ",
-    "MARMOL (Invierno)": "4aHsB4QJKUL4yU1g81jWG3",
-    "Siempre a Ti": "2c5pe9NDktIsI9D1E8F16k"
-};
 
 // ===== ESTADO DE FILTROS =====
 let filtroServicio = "todos";
@@ -65,30 +43,18 @@ async function cargarProyectos() {
 
     try {
         const { data: proyectos, error } = await supabase
-            .from('proyectos')
-            .select(`
-                id,
-                cliente_id,
-                nombre_proyecto,
-                codigo,
-                precio_total,
-                estado,
-                estado_vital,
-                genero,
-                anio,
-                servicios,
-                notas,
-                spotify_track_id,
-                clientes (nombre)
-            `)
-            .order('anio', { ascending: false });
+            .from(TABLE_NAME)
+            .select('*')
+            .eq('activo', true)
+            .order('anio', { ascending: false })
+            .order('orden', { ascending: true });
 
         if (error) {
             console.error('Error Supabase:', error);
             throw error;
         }
 
-        console.log('Proyectos cargados:', proyectos);
+        console.log('Proyectos musicales cargados:', proyectos);
         renderProyectos(proyectos);
     } catch (error) {
         console.error('Error cargando proyectos:', error);
@@ -124,25 +90,25 @@ function renderProyectos(proyectos) {
     }
 
     grid.innerHTML = proyectosFiltrados.map(proyecto => {
-        const cliente = proyecto.clientes?.nombre || 'Cliente';
-        const nombreProyecto = proyecto.nombre_proyecto || 'Sin nombre';
-        const coverArt = getCoverArt(nombreProyecto);
+        const titulo = proyecto.titulo || 'Sin título';
+        const artista = proyecto.artista || 'Artista';
+        const coverArt = getCoverArt(titulo);
         const serviciosArray = parseServicios(proyecto.servicios);
 
         return `
             <div class="project-card" data-proyecto='${JSON.stringify(proyecto).replace(/'/g, "&apos;")}'>
                 <div class="project-cover">
-                    <img src="${coverArt}" alt="${nombreProyecto}">
+                    <img src="${coverArt}" alt="${titulo}">
                     <div class="project-overlay">
                         <div class="project-overlay-content">
-                            <div class="project-overlay-title">${nombreProyecto}</div>
-                            <div class="project-overlay-artist">${cliente}</div>
+                            <div class="project-overlay-title">${titulo}</div>
+                            <div class="project-overlay-artist">${artista}</div>
                         </div>
                     </div>
                 </div>
                 <div class="project-info">
-                    <div class="project-title">${nombreProyecto}</div>
-                    <div class="project-artist">${cliente}</div>
+                    <div class="project-title">${titulo}</div>
+                    <div class="project-artist">${artista}</div>
                     <div class="project-services">
                         ${serviciosArray.map(s => `<span class="service-tag">${s}</span>`).join('')}
                     </div>
@@ -160,12 +126,11 @@ function renderProyectos(proyectos) {
     });
 }
 
-function getCoverArt(nombreProyecto) {
-    // Buscar en el mapping
-    for (const [key, filename] of Object.entries(coverArtsMapping)) {
-        if (nombreProyecto.toLowerCase().includes(key.toLowerCase())) {
-            return `${COVER_ARTS_PATH}${filename}`;
-        }
+function getCoverArt(titulo) {
+    // Si el proyecto ya tiene cover_art en la BD, usarlo
+    // Si no, usar cover por defecto
+    if (titulo && titulo.cover_art) {
+        return titulo.cover_art.startsWith('./') ? titulo.cover_art : `${COVER_ARTS_PATH}${titulo.cover_art}`;
     }
     // Cover art por defecto
     return 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="300" height="300"%3E%3Crect fill="%23c5b8aa" width="300" height="300"/%3E%3Ctext fill="%235e1c2e" font-family="Cormorant Garamond" font-size="24" x="50%25" y="50%25" text-anchor="middle" dominant-baseline="middle"%3EDIECO MANCIPE%3C/text%3E%3C/svg%3E';
@@ -176,28 +141,19 @@ function parseServicios(serviciosStr) {
     return serviciosStr.split(',').map(s => s.trim()).filter(s => s);
 }
 
-function getSpotifyId(nombreProyecto) {
-    for (const [key, id] of Object.entries(spotifyIds)) {
-        if (nombreProyecto.toLowerCase().includes(key.toLowerCase())) {
-            return id;
-        }
-    }
-    return null;
-}
-
 // ===== MODAL =====
 
 function abrirModal(proyecto) {
     const modal = document.getElementById('modal-overlay');
-    const cliente = proyecto.clientes?.nombre || 'Cliente';
-    const nombreProyecto = proyecto.nombre_proyecto || 'Sin nombre';
-    const coverArt = getCoverArt(nombreProyecto);
+    const titulo = proyecto.titulo || 'Sin título';
+    const artista = proyecto.artista || 'Artista';
+    const coverArt = proyecto.cover_art || getCoverArt(titulo);
     const serviciosArray = parseServicios(proyecto.servicios);
-    const spotifyId = getSpotifyId(nombreProyecto);
+    const spotifyId = proyecto.spotify_track_id;
 
     document.getElementById('modal-cover-art').src = coverArt;
-    document.getElementById('modal-title').textContent = nombreProyecto;
-    document.getElementById('modal-artist').textContent = cliente;
+    document.getElementById('modal-title').textContent = titulo;
+    document.getElementById('modal-artist').textContent = artista;
     document.getElementById('modal-genero').textContent = proyecto.genero || 'Género';
     document.getElementById('modal-anio').textContent = proyecto.anio || 'Año';
 
