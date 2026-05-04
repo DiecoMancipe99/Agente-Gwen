@@ -1522,35 +1522,85 @@ async function init() {
     await checkAuth();
 }
 
+// ===== GLOBAL FUNCTIONS (for onclick handlers) =====
+window.deleteCliente = deleteCliente;
+window.eliminarIngreso = eliminarIngreso;
+window.eliminarGasto = eliminarGasto;
+window.eliminarProyecto = eliminarProyecto;
+window.eliminarDeuda = eliminarDeuda;
+window.eliminarSesion = eliminarSesion;
+window.cambiarEstatusProyecto = cambiarEstatusProyecto;
+window.registrarPagoDeuda = registrarPagoDeuda;
+window.generarFacturaProyecto = generarFacturaProyecto;
+window.toggleConceptoCustom = () => {
+    const select = document.getElementById('factura-concepto');
+    const customGroup = document.getElementById('concepto-custom-group');
+    if (select && customGroup) {
+        customGroup.style.display = select.value === 'custom' ? 'block' : 'none';
+    }
+};
+
 // Start app
 init();
-
-// ===== GENERAR FACTURA/ORDEN DE PROYECTO =====
 async function generarFacturaProyecto(proyectoId) {
-    // Obtener datos del proyecto
-    const { data: proyectos } = await supabase.from('proyectos')
-        .select('*, clientes(nombre, contacto_email, contacto_telefono)');
+    // Obtener datos del proyecto con fetch directo (nuestro cliente no soporta joins)
+    const session = JSON.parse(localStorage.getItem('supabase_session') || 'null');
+    const token = session?.access_token || SUPABASE_ANON_KEY;
 
-    const proyecto = proyectos?.find(p => p.id === proyectoId);
+    try {
+        // Fetch proyectos
+        const proyectosRes = await fetch(`${SUPABASE_URL}/rest/v1/proyectos?id=eq.${proyectoId}`, {
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        const proyectos = await proyectosRes.json();
+        const proyecto = proyectos[0];
 
-    if (!proyecto) {
-        alert('Proyecto no encontrado');
-        return;
+        if (!proyecto) {
+            alert('Proyecto no encontrado');
+            return;
+        }
+
+        // Fetch cliente
+        let cliente = null;
+        if (proyecto.cliente_id) {
+            const clienteRes = await fetch(`${SUPABASE_URL}/rest/v1/clientes?id=eq.${proyecto.cliente_id}`, {
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            const clientesData = await clienteRes.json();
+            cliente = clientesData[0];
+        }
+
+        // Fetch ingresos del proyecto
+        const ingresosRes = await fetch(`${SUPABASE_URL}/rest/v1/ingresos?proyecto_id=eq.${proyectoId}`, {
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        const ingresos = await ingresosRes.json();
+
+        // Calcular pagado y pendiente
+        const pagado = (ingresos || []).reduce((sum, i) => sum + (parseFloat(i.monto) || 0), 0);
+        const pendiente = (proyecto.precio_total || 0) - pagado;
+
+        // Agregar cliente al proyecto
+        proyecto.clientes = cliente;
+
+        // Mostrar modal de opciones
+        mostrarModalFactura(proyecto, pagado, pendiente, ingresos || []);
+    } catch (error) {
+        console.error('Error generando factura:', error);
+        alert('Error al cargar datos del proyecto: ' + error.message);
     }
-
-    // Obtener ingresos/pagos del proyecto
-    const { data: ingresos } = await supabase.from('ingresos')
-        .select('*')
-        .then(cb => cb.data || []);
-
-    const pagosProyecto = (ingresos || []).filter(i => i.proyecto_id === proyectoId);
-
-    // Calcular pagado y pendiente
-    const pagado = pagosProyecto.reduce((sum, p) => sum + (parseFloat(p.monto) || 0), 0);
-    const pendiente = (proyecto.precio_total || 0) - pagado;
-
-    // Mostrar modal de opciones
-    mostrarModalFactura(proyecto, pagado, pendiente, pagosProyecto);
 }
 
 function mostrarModalFactura(proyecto, pagado, pendiente, pagos) {
@@ -1732,14 +1782,3 @@ function cerrarModalFactura() {
         modal.remove();
     }
 }
-
-// ===== GLOBAL FUNCTIONS (for onclick handlers) =====
-window.deleteCliente = deleteCliente;
-window.eliminarIngreso = eliminarIngreso;
-window.eliminarGasto = eliminarGasto;
-window.eliminarProyecto = eliminarProyecto;
-window.eliminarDeuda = eliminarDeuda;
-window.eliminarSesion = eliminarSesion;
-window.cambiarEstatusProyecto = cambiarEstatusProyecto;
-window.registrarPagoDeuda = registrarPagoDeuda;
-window.generarFacturaProyecto = generarFacturaProyecto;
