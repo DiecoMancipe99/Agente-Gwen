@@ -70,7 +70,7 @@ async function generarPDF(datos, opciones = {}) {
         yPos = drawHeader(doc, pageWidth, margin, tipo, datos);
 
         // 2. INFORMACIÓN - Dieco (izq) y Cliente (der)
-        yPos = drawInfoSection(doc, margin, contentWidth, yPos, datos);
+        yPos = drawInfoSection(doc, pageWidth, margin, yPos, datos);
 
         // 3. TABLA DE ITEMS
         yPos = drawItemsTable(doc, margin, contentWidth, yPos, datos.items, moneda);
@@ -140,7 +140,7 @@ function drawHeader(doc, pageWidth, margin, tipo, datos) {
 }
 
 // ===== 2. INFORMACIÓN =====
-function drawInfoSection(doc, margin, contentWidth, yPos, datos) {
+function drawInfoSection(doc, pageWidth, margin, yPos, datos) {
     const colors = PDF_CONFIG.colors;
 
     // Columna izquierda - Dieco
