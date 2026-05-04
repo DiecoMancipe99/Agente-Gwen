@@ -48,55 +48,76 @@ const COMPANY_INFO = {
 // ===== FUNCIÓN PRINCIPAL =====
 async function generarPDF(datos, opciones = {}) {
     const {
-        tipo = 'orden', // 'orden' o 'factura'
+        tipo = 'orden',
         moneda = 'COP',
         incluirIva = false,
         outputName = null
     } = opciones;
 
-    // Cargar jsPDF dinámicamente
-    await loadJspdf();
+    console.log('[PDF] Generando PDF...', { datos, opciones });
 
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'letter'
-    });
+    try {
+        // Cargar jsPDF dinámicamente
+        await loadJspdf();
 
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
-    const margin = 20;
-    const contentWidth = pageWidth - (margin * 2);
+        console.log('[PDF] jsPDF cargado, creando documento...');
 
-    let yPos = margin;
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({
+            orientation: 'portrait',
+            unit: 'mm',
+            format: 'letter'
+        });
 
-    // ===== HEADER =====
-    yPos = drawHeader(doc, pageWidth, margin, tipo, datos);
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const margin = 20;
+        const contentWidth = pageWidth - (margin * 2);
 
-    // ===== INFORMACIÓN DEL CLIENTE =====
-    yPos = drawClientInfo(doc, margin, contentWidth, yPos, datos);
+        let yPos = margin;
 
-    // ===== TABLA DE ITEMS =====
-    yPos = drawItemsTable(doc, margin, contentWidth, yPos, datos.items, moneda);
+        // ===== HEADER =====
+        console.log('[PDF] Dibujando header...');
+        yPos = drawHeader(doc, pageWidth, margin, tipo, datos);
 
-    // ===== TOTALES =====
-    yPos = drawTotals(doc, margin, contentWidth, yPos, datos, moneda, incluirIva);
+        // ===== INFORMACIÓN DEL CLIENTE =====
+        console.log('[PDF] Dibujando info cliente...');
+        yPos = drawClientInfo(doc, margin, contentWidth, yPos, datos);
 
-    // ===== INFORMACIÓN DE PAGO =====
-    drawPaymentInfo(doc, margin, contentWidth, yPos + 10);
+        // ===== TABLA DE ITEMS =====
+        console.log('[PDF] Dibujando tabla items...');
+        yPos = drawItemsTable(doc, margin, contentWidth, yPos, datos.items, moneda);
 
-    // ===== FIRMAS =====
-    drawSignatures(doc, margin, contentWidth, pageHeight - 40);
+        // ===== TOTALES =====
+        console.log('[PDF] Dibujando totales...');
+        yPos = drawTotals(doc, pageWidth, margin, contentWidth, yPos, datos, moneda, incluirIva);
 
-    // ===== FOOTER =====
-    drawFooter(doc, pageWidth, pageHeight - 15);
+        // ===== INFORMACIÓN DE PAGO =====
+        console.log('[PDF] Dibujando info pago...');
+        drawPaymentInfo(doc, margin, contentWidth, yPos + 10);
 
-    // Guardar PDF
-    const filename = outputName || `${tipo}_${datos.numero || 'sin_numero'}.pdf`;
-    doc.save(filename);
+        // ===== FIRMAS =====
+        console.log('[PDF] Dibujando firmas...');
+        drawSignatures(doc, margin, contentWidth, pageHeight - 40);
 
-    return doc;
+        // ===== FOOTER =====
+        console.log('[PDF] Dibujando footer...');
+        drawFooter(doc, pageWidth, pageHeight - 15);
+
+        // Guardar PDF
+        const filename = outputName || `${tipo}_${datos.numero || 'sin_numero'}.pdf`;
+        console.log('[PDF] Guardando archivo:', filename);
+        doc.save(filename);
+
+        console.log('[PDF] PDF guardado exitosamente');
+        alert('✅ PDF generado exitosamente');
+
+        return doc;
+    } catch (error) {
+        console.error('[PDF] Error generando PDF:', error);
+        alert('❌ Error al generar PDF: ' + error.message);
+        throw error;
+    }
 }
 
 // ===== DIBUJAR HEADER =====
@@ -217,16 +238,14 @@ function drawItemsTable(doc, margin, contentWidth, yPos, items, moneda) {
 }
 
 // ===== TOTALES =====
-function drawTotals(doc, margin, contentWidth, yPos, datos, moneda, incluirIva) {
+function drawTotals(doc, pageWidth, margin, contentWidth, yPos, datos, moneda, incluirIva) {
     const colors = PDF_CONFIG.colors;
 
     let subtotal = datos.items.reduce((sum, item) => sum + (item.cantidad * item.valorUnitario), 0);
     let iva = incluirIva ? subtotal * 0.19 : 0;
     let total = subtotal + iva;
 
-    const tableWidth = contentWidth;
-    const labelWidth = tableWidth * 0.6;
-    const valueWidth = tableWidth * 0.4;
+    const valueWidth = contentWidth * 0.4;
     const startX = pageWidth - margin - valueWidth;
 
     // Subtotal
