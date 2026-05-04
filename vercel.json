@@ -1,5 +1,15 @@
 {
     "outputDirectory": "public",
+    "rewrites": [
+        {
+            "source": "/catalogo",
+            "destination": "/catalogo.html"
+        },
+        {
+            "source": "/catalogo/",
+            "destination": "/catalogo.html"
+        }
+    ],
     "headers": [
         {
             "source": "/(.*)",
