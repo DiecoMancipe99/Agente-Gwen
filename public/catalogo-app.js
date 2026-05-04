@@ -18,9 +18,20 @@ let filtroAnio = "todos";
 // ===== CLIENTE SUPABASE SIMPLE =====
 const supabase = {
     from: (table) => ({
-        select: (columns = '*') => ({
+        select: (columns = '*', filters = {}) => ({
             then: (callback) => {
-                fetch(`${SUPABASE_URL}/rest/v1/${table}?select=${columns}`, {
+                // Construir query params con filtros
+                const params = new URLSearchParams();
+                params.set('select', columns);
+
+                // Agregar filtros (ej: activo=eq.true)
+                Object.entries(filters).forEach(([key, value]) => {
+                    params.set(key, `eq.${value}`);
+                });
+
+                const url = `${SUPABASE_URL}/rest/v1/${table}?${params.toString()}`;
+
+                fetch(url, {
                     headers: {
                         'apikey': SUPABASE_ANON_KEY,
                         'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
@@ -42,20 +53,26 @@ async function cargarProyectos() {
     grid.innerHTML = '<div class="loading">Cargando proyectos...</div>';
 
     try {
+        // Filtros en la URL de Supabase
         const { data: proyectos, error } = await supabase
             .from(TABLE_NAME)
-            .select('*')
-            .eq('activo', true)
-            .order('anio', { ascending: false })
-            .order('orden', { ascending: true });
+            .select('*', { activo: true })
+            .then(result => result);
 
         if (error) {
             console.error('Error Supabase:', error);
             throw error;
         }
 
-        console.log('Proyectos musicales cargados:', proyectos);
-        renderProyectos(proyectos);
+        // Ordenar en JS (más simple que con Supabase REST)
+        let proyectosOrdenados = (proyectos || []).sort((a, b) => {
+            const anioDiff = (b.anio || 0) - (a.anio || 0);
+            if (anioDiff !== 0) return anioDiff;
+            return (a.orden || 0) - (b.orden || 0);
+        });
+
+        console.log('Proyectos musicales cargados:', proyectosOrdenados);
+        renderProyectos(proyectosOrdenados);
     } catch (error) {
         console.error('Error cargando proyectos:', error);
         grid.innerHTML = `
