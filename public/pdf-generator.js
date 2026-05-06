@@ -152,7 +152,7 @@ async function generarPDF(datos, opciones = {}) {
 
         // 8. CONDICIONES Y NOTAS - justo después del pago
         // Verificar espacio ANTES de dibujar condiciones + firmas
-        const conditionsHeight = 35;
+        const conditionsHeight = 40;
         const signaturesHeight = 40;
         const totalNeeded = conditionsHeight + signaturesHeight;
 
@@ -610,28 +610,40 @@ function drawConditions(pdf) {
     const margin = PDF_CONFIG.margins.left;
     const contentWidth = PDF_CONFIG.pageWidth - (margin * 2);
 
-    // Título con fondo burgundy
-    doc.setFillColor(colors.burgundy);
-    doc.rect(margin, y - 5, 60, 8, 'F');
+    // Caja con borde suave y fondo claro
+    doc.setFillColor(colors.creamLight);
+    doc.rect(margin, y - 5, contentWidth, 32, 'F');
 
+    // Título
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
-    doc.setTextColor('#ffffff');
-    doc.text('CONDICIONES Y NOTAS', margin + 3, y + 2);
+    doc.setFontSize(9);
+    doc.setTextColor(colors.burgundy);
+    doc.text('CONDICIONES Y NOTAS', margin + 3, y);
+
+    // Línea divisoria bajo el título
+    doc.setDrawColor(colors.taupe);
+    doc.setLineWidth(0.3);
+    doc.line(margin + 3, y + 2, margin + contentWidth - 3, y + 2);
 
     const conditions = [
-        '• Términos de pago: 50% al inicio, 50% contra entrega.',
-        '• Tiempo de entrega: A convenir según alcance.',
-        '• Revisiones: 2 rondas por etapa.',
-        '• Validez: 15 días desde emisión.'
+        'Términos de pago: 50% al inicio, 50% contra entrega.',
+        'Tiempo de entrega: A convenir según alcance.',
+        'Revisiones: 2 rondas por etapa.',
+        'Validez: 15 días desde emisión.'
     ];
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     doc.setTextColor(colors.dark);
     conditions.forEach((cond, idx) => {
-        doc.text(cond, margin, y + 14 + (idx * 6));
+        // Ícono de check simulado con un guión
+        doc.text('— ' + cond, margin + 5, y + 10 + (idx * 5));
     });
+
+    // Borde exterior suave
+    doc.setDrawColor(colors.taupe);
+    doc.setLineWidth(0.3);
+    doc.rect(margin, y - 5, contentWidth, 32);
 }
 
 // ===== 9. SIGNATURES =====
