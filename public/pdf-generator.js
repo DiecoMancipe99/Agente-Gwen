@@ -252,19 +252,20 @@ function drawClientTable(pdf, cliente) {
     const tableY = y + 7;
     const rowHeight = 6;
 
-    // Datos en formato compacto horizontal
+    // Datos en formato compacto horizontal (2 columnas)
     const clienteData = [
         { label: 'Nombre', value: cliente.nombre || '-' },
+        { label: 'Documento', value: cliente.documento || '-' },
         { label: 'Email', value: cliente.email || '-' },
         { label: 'Teléfono', value: cliente.telefono || '-' }
     ];
 
-    const neededSpace = 25;
+    const neededSpace = 32;
     if (pdf.getAvailableSpace() < neededSpace) {
         pdf.addPage();
     }
 
-    // Dibujar filas compactas
+    // Dibujar filas compactas en 2 columnas
     clienteData.forEach((item, idx) => {
         const currentY = tableY + (idx * rowHeight);
         const colWidth = contentWidth / 2;
@@ -281,8 +282,8 @@ function drawClientTable(pdf, cliente) {
 
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(colors.dark);
-        const valueX = xPos + 20;
-        const maxValueWidth = colWidth - 25;
+        const valueX = xPos + 22;
+        const maxValueWidth = colWidth - 27;
         const valueText = item.value;
 
         if (doc.getTextWidth(valueText) > maxValueWidth) {
@@ -296,9 +297,9 @@ function drawClientTable(pdf, cliente) {
     // Borde exterior
     doc.setDrawColor(colors.taupe);
     doc.setLineWidth(0.3);
-    doc.rect(margin, tableY - 4, contentWidth, 18);
+    doc.rect(margin, tableY - 4, contentWidth, 28);
 
-    pdf.y = tableY + 22;
+    pdf.y = tableY + 32;
 }
 
 // ===== 5. SERVICES TABLE =====

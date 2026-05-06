@@ -1664,36 +1664,75 @@ function mostrarModalFactura(proyecto, pagado, pendiente, pagos) {
     const numeroOrden = `DM-${String(Date.now()).slice(-6)}`;
 
     modal.innerHTML = `
-        <div style="background: var(--color-cream); border-radius: 8px; padding: 2rem; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto;">
+        <div style="background: var(--color-cream); border-radius: 8px; padding: 2rem; max-width: 550px; width: 90%; max-height: 85vh; overflow-y: auto;">
             <h3 style="color: var(--color-primary); margin-bottom: 1.5rem; font-family: 'Cormorant Garamond', serif;">📄 Generar Documento</h3>
 
-            <div style="margin-bottom: 1.5rem;">
+            <div style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--color-taupe);">
                 <p style="font-size: 0.9rem; margin-bottom: 0.5rem;"><strong>Proyecto:</strong> ${proyecto.nombre_proyecto}</p>
-                <p style="font-size: 0.9rem; margin-bottom: 0.5rem;"><strong>Cliente:</strong> ${cliente.nombre || 'N/A'}</p>
+                <p style="font-size: 0.9rem; margin-bottom: 0.5rem;"><strong>Cliente registrado:</strong> ${cliente.nombre || 'N/A'}</p>
                 <p style="font-size: 0.9rem; margin-bottom: 0.5rem;"><strong>Total:</strong> ${formatCurrency(proyecto.precio_total)}</p>
                 <p style="font-size: 0.9rem; margin-bottom: 0.5rem;"><strong>Pagado:</strong> ${formatCurrency(pagado)}</p>
-                <p style="font-size: 0.9rem; margin-bottom: 1rem;"><strong>Pendiente:</strong> ${formatCurrency(pendiente)}</p>
+                <p style="font-size: 0.9rem;"><strong>Pendiente:</strong> ${formatCurrency(pendiente)}</p>
             </div>
 
-            <form id="form-generar-factura" style="display: flex; flex-direction: column; gap: 1rem;">
+            <form id="form-generar-factura" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                <h4 style="color: var(--color-primary); font-size: 0.9rem; margin-bottom: 0.25rem;">Información del Cliente</h4>
+
                 <div>
-                    <label style="display: block; font-size: 0.85rem; margin-bottom: 0.5rem;">Tipo de documento:</label>
-                    <select id="factura-tipo" style="width: 100%; padding: 0.5rem; border: 1px solid rgba(94,28,46,0.3); border-radius: 4px;">
-                        <option value="orden">Orden de Compra</option>
-                        <option value="factura">Factura</option>
-                    </select>
+                    <label style="display: block; font-size: 0.85rem; margin-bottom: 0.25rem;">Nombre completo o Razón Social *</label>
+                    <input type="text" id="factura-cliente-nombre" required placeholder="Ej: Juan Pérez o Empresa SAS" style="width: 100%; padding: 0.5rem; border: 1px solid rgba(94,28,46,0.3); border-radius: 4px;" value="${cliente.nombre || ''}">
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                    <div>
+                        <label style="display: block; font-size: 0.85rem; margin-bottom: 0.25rem;">Teléfono *</label>
+                        <input type="tel" id="factura-cliente-telefono" required placeholder="+57 300 1234567" style="width: 100%; padding: 0.5rem; border: 1px solid rgba(94,28,46,0.3); border-radius: 4px;" value="${cliente.contacto_telefono || ''}">
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.85rem; margin-bottom: 0.25rem;">Email</label>
+                        <input type="email" id="factura-cliente-email" placeholder="cliente@email.com" style="width: 100%; padding: 0.5rem; border: 1px solid rgba(94,28,46,0.3); border-radius: 4px;" value="${cliente.contacto_email || ''}">
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                    <div>
+                        <label style="display: block; font-size: 0.85rem; margin-bottom: 0.25rem;">Tipo de documento *</label>
+                        <select id="factura-cliente-tipo-doc" required style="width: 100%; padding: 0.5rem; border: 1px solid rgba(94,28,46,0.3); border-radius: 4px;">
+                            <option value="">Seleccionar...</option>
+                            <option value="CC">CC (Cédula de Ciudadanía)</option>
+                            <option value="TI">TI (Tarjeta de Identidad)</option>
+                            <option value="CE">CE (Cédula de Extranjería)</option>
+                            <option value="NIT">NIT (Número de Identificación Tributaria)</option>
+                            <option value="PAS">Pasaporte</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.85rem; margin-bottom: 0.25rem;">Número de documento *</label>
+                        <input type="text" id="factura-cliente-numero-doc" required placeholder="Ej: 1052416657" style="width: 100%; padding: 0.5rem; border: 1px solid rgba(94,28,46,0.3); border-radius: 4px;">
+                    </div>
+                </div>
+
+                <h4 style="color: var(--color-primary); font-size: 0.9rem; margin: 0.5rem 0 0.25rem 0;">Configuración del Documento</h4>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                    <div>
+                        <label style="display: block; font-size: 0.85rem; margin-bottom: 0.25rem;">Tipo de documento:</label>
+                        <select id="factura-tipo" style="width: 100%; padding: 0.5rem; border: 1px solid rgba(94,28,46,0.3); border-radius: 4px;">
+                            <option value="orden">Orden de Compra</option>
+                            <option value="factura">Factura</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.85rem; margin-bottom: 0.25rem;">Moneda:</label>
+                        <select id="factura-moneda" style="width: 100%; padding: 0.5rem; border: 1px solid rgba(94,28,46,0.3); border-radius: 4px;">
+                            <option value="COP">COP (Pesos Colombianos)</option>
+                            <option value="USD">USD (Dólares)</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div>
-                    <label style="display: block; font-size: 0.85rem; margin-bottom: 0.5rem;">Moneda:</label>
-                    <select id="factura-moneda" style="width: 100%; padding: 0.5rem; border: 1px solid rgba(94,28,46,0.3); border-radius: 4px;">
-                        <option value="COP">COP (Pesos Colombianos)</option>
-                        <option value="USD">USD (Dólares)</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label style="display: block; font-size: 0.85rem; margin-bottom: 0.5rem;">Concepto:</label>
+                    <label style="display: block; font-size: 0.85rem; margin-bottom: 0.25rem;">Concepto:</label>
                     <select id="factura-concepto" style="width: 100%; padding: 0.5rem; border: 1px solid rgba(94,28,46,0.3); border-radius: 4px;" onchange="toggleConceptoCustom()">
                         <option value="servicios">Servicios de Producción Musical</option>
                         <option value="grabacion">Servicios de Grabación</option>
@@ -1705,26 +1744,22 @@ function mostrarModalFactura(proyecto, pagado, pendiente, pagos) {
                 </div>
 
                 <div id="concepto-custom-group" style="display: none;">
-                    <label style="display: block; font-size: 0.85rem; margin-bottom: 0.5rem;">Descripción del concepto:</label>
+                    <label style="display: block; font-size: 0.85rem; margin-bottom: 0.25rem;">Descripción del concepto:</label>
                     <input type="text" id="factura-concepto-custom" placeholder="Ej: Producción, mezcla y masterización de..." style="width: 100%; padding: 0.5rem; border: 1px solid rgba(94,28,46,0.3); border-radius: 4px;">
                 </div>
 
-                <div>
-                    <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem;">
-                        <input type="checkbox" id="factura-incluir-iva">
-                        Incluir IVA (19%)
-                    </label>
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.25rem;">
+                    <input type="checkbox" id="factura-incluir-iva" style="width: auto;">
+                    <label for="factura-incluir-iva" style="font-size: 0.85rem;">Incluir IVA (19%)</label>
                 </div>
 
-                <div>
-                    <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem;">
-                        <input type="checkbox" id="factura-mostrar-pagado" checked>
-                        Mostrar pagos realizados
-                    </label>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <input type="checkbox" id="factura-mostrar-pagado" checked style="width: auto;">
+                    <label for="factura-mostrar-pagado" style="font-size: 0.85rem;">Mostrar pagos realizados</label>
                 </div>
 
-                <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
-                    <button type="button" onclick="cerrarModalFactura()" style="flex: 1; padding: 0.75rem; border: 1px solid var(--color-taupe); border-radius: 4px; background: transparent; cursor: pointer; font-size: 0.85rem;">Cancelar</button>
+                <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                    <button type="button" id="btn-cancelar-factura" style="flex: 1; padding: 0.75rem; border: 1px solid var(--color-taupe); border-radius: 4px; background: transparent; cursor: pointer; font-size: 0.85rem;">Cancelar</button>
                     <button type="submit" class="btn-primary" style="flex: 1; padding: 0.75rem; border: none; border-radius: 4px; background: var(--color-primary); color: white; cursor: pointer; font-size: 0.85rem;">Generar PDF</button>
                 </div>
             </form>
@@ -1740,6 +1775,11 @@ function mostrarModalFactura(proyecto, pagado, pendiente, pagos) {
         customGroup.style.display = select.value === 'custom' ? 'block' : 'none';
     };
 
+    // Botón cancelar
+    document.getElementById('btn-cancelar-factura').addEventListener('click', () => {
+        cerrarModalFactura();
+    });
+
     // Submit handler
     document.getElementById('form-generar-factura').addEventListener('submit', (e) => {
         e.preventDefault();
@@ -1750,6 +1790,13 @@ function mostrarModalFactura(proyecto, pagado, pendiente, pagos) {
         const mostrarPagado = document.getElementById('factura-mostrar-pagado').checked;
         const concepto = document.getElementById('factura-concepto').value;
         const conceptoCustom = document.getElementById('factura-concepto-custom').value;
+
+        // Datos del cliente
+        const nombreCliente = document.getElementById('factura-cliente-nombre').value;
+        const telefonoCliente = document.getElementById('factura-cliente-telefono').value;
+        const emailCliente = document.getElementById('factura-cliente-email').value;
+        const tipoDoc = document.getElementById('factura-cliente-tipo-doc').value;
+        const numeroDoc = document.getElementById('factura-cliente-numero-doc').value;
 
         // Preparar datos para el PDF
         const conceptoFinal = concepto === 'custom' ? (conceptoCustom || 'Servicios profesionales') : getConceptoLabel(concepto);
@@ -1785,9 +1832,10 @@ function mostrarModalFactura(proyecto, pagado, pendiente, pagos) {
             numero: numeroOrden,
             fecha: new Date().toLocaleDateString('es-CO'),
             cliente: {
-                nombre: cliente.nombre || 'Cliente',
-                email: cliente.contacto_email || '',
-                telefono: cliente.contacto_telefono || '',
+                nombre: nombreCliente || 'Cliente',
+                email: emailCliente || '',
+                telefono: telefonoCliente || '',
+                documento: `${tipoDoc}: ${numeroDoc}`,
                 proyecto: proyecto.nombre_proyecto
             },
             items: items
