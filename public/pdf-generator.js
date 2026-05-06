@@ -249,8 +249,8 @@ function drawClientTable(pdf, cliente) {
     doc.setTextColor(colors.burgundy);
     doc.text('DATOS DEL CLIENTE', margin, y);
 
-    const tableY = y + 7;
-    const rowHeight = 6;
+    const tableY = y + 6;
+    const rowHeight = 5;
 
     // Datos en formato compacto horizontal (2 columnas)
     const clienteData = [
@@ -260,7 +260,7 @@ function drawClientTable(pdf, cliente) {
         { label: 'Teléfono', value: cliente.telefono || '-' }
     ];
 
-    const neededSpace = 32;
+    const neededSpace = 28;
     if (pdf.getAvailableSpace() < neededSpace) {
         pdf.addPage();
     }
@@ -270,20 +270,20 @@ function drawClientTable(pdf, cliente) {
         const currentY = tableY + (idx * rowHeight);
         const colWidth = contentWidth / 2;
         const col = idx % 2;
-        const xPos = margin + (col * colWidth) + (col * 5);
+        const xPos = margin + (col * colWidth) + (col * 3);
 
         doc.setFillColor(colors.creamLight);
-        doc.rect(xPos, currentY - 4, colWidth - 5, rowHeight, 'F');
+        doc.rect(xPos, currentY - 3.5, colWidth - 3, rowHeight, 'F');
 
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(7);
+        doc.setFontSize(6.5);
         doc.setTextColor(colors.taupe);
         doc.text(`${item.label}:`, xPos + 2, currentY);
 
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(colors.dark);
-        const valueX = xPos + 22;
-        const maxValueWidth = colWidth - 27;
+        const valueX = xPos + 18;
+        const maxValueWidth = colWidth - 22;
         const valueText = item.value;
 
         if (doc.getTextWidth(valueText) > maxValueWidth) {
@@ -297,9 +297,9 @@ function drawClientTable(pdf, cliente) {
     // Borde exterior
     doc.setDrawColor(colors.taupe);
     doc.setLineWidth(0.3);
-    doc.rect(margin, tableY - 4, contentWidth, 28);
+    doc.rect(margin, tableY - 3.5, contentWidth, (rowHeight * 4));
 
-    pdf.y = tableY + 32;
+    pdf.y = tableY + (rowHeight * 4) + 4;
 }
 
 // ===== 5. SERVICES TABLE =====
