@@ -152,17 +152,17 @@ async function generarPDF(datos, opciones = {}) {
 
         // 8. CONDICIONES Y NOTAS - justo después del pago
         // Verificar espacio ANTES de dibujar condiciones + firmas
-        const conditionsHeight = 25;
-        const signaturesHeight = 35;
+        const conditionsHeight = 35;
+        const signaturesHeight = 40;
         const totalNeeded = conditionsHeight + signaturesHeight;
 
         if (pdf.getAvailableSpace() < totalNeeded) {
             pdf.addPage();
         }
         drawConditions(pdf);
-        pdf.y += 8;
+        pdf.y += 10;
 
-        // 9. FIRMAS
+        // 9. FIRMAS - van al final de la página
         drawSignatures(pdf, datos.cliente);
 
         // 10. FOOTER
@@ -608,15 +608,16 @@ function drawPaymentNote(pdf) {
 function drawConditions(pdf) {
     const { doc, y, colors } = pdf;
     const margin = PDF_CONFIG.margins.left;
+    const contentWidth = PDF_CONFIG.pageWidth - (margin * 2);
 
     // Título con fondo burgundy
     doc.setFillColor(colors.burgundy);
-    doc.rect(margin, y - 4, 50, 6, 'F');
+    doc.rect(margin, y - 5, 60, 8, 'F');
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(7);
+    doc.setFontSize(10);
     doc.setTextColor('#ffffff');
-    doc.text('CONDICIONES Y NOTAS', margin + 2, y);
+    doc.text('CONDICIONES Y NOTAS', margin + 3, y + 2);
 
     const conditions = [
         '• Términos de pago: 50% al inicio, 50% contra entrega.',
@@ -626,28 +627,31 @@ function drawConditions(pdf) {
     ];
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(6);
+    doc.setFontSize(9);
     doc.setTextColor(colors.dark);
     conditions.forEach((cond, idx) => {
-        doc.text(cond, margin, y + 8 + (idx * 4));
+        doc.text(cond, margin, y + 14 + (idx * 6));
     });
 }
 
 // ===== 9. SIGNATURES =====
 function drawSignatures(pdf, cliente) {
-    const { doc, y, colors } = pdf;
+    const { doc, colors } = pdf;
     const pageWidth = PDF_CONFIG.pageWidth;
-    const margin = PDF_CONFIG.margins.left;
     const pageHeight = PDF_CONFIG.pageHeight;
+    const margin = PDF_CONFIG.margins.left;
 
+    // Firmas al final de la página - posición fija
     const signatureWidth = 75;
-    const signatureGap = 20;
+    const signatureGap = 25;
     const totalSignaturesWidth = (signatureWidth * 2) + signatureGap;
     const startX = (pageWidth - totalSignaturesWidth) / 2;
 
+    // Posicionar firmas cerca del footer (antes del footer)
+    const signatureTopY = pageHeight - 55;
+
     const leftX = startX;
     const rightX = startX + signatureWidth + signatureGap;
-    const signatureTopY = y + 8;
 
     // Líneas de firma
     doc.setDrawColor(colors.dark);
@@ -657,19 +661,19 @@ function drawSignatures(pdf, cliente) {
 
     // Diego Mancipe - izquierda
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
+    doc.setFontSize(10);
     doc.setTextColor(colors.burgundy);
-    doc.text('Diego Mancipe', leftX + (signatureWidth / 2), signatureTopY + 5, { align: 'center' });
+    doc.text('Diego Mancipe', leftX + (signatureWidth / 2), signatureTopY + 6, { align: 'center' });
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(6);
+    doc.setFontSize(7);
     doc.setTextColor(colors.taupe);
-    doc.text('Sound Engineer & Music Producer', leftX + (signatureWidth / 2), signatureTopY + 9, { align: 'center' });
-    doc.text('CC: 1052416657', leftX + (signatureWidth / 2), signatureTopY + 13, { align: 'center' });
+    doc.text('Sound Engineer & Music Producer', leftX + (signatureWidth / 2), signatureTopY + 11, { align: 'center' });
+    doc.text('CC: 1052416657', leftX + (signatureWidth / 2), signatureTopY + 16, { align: 'center' });
 
     // Cliente - derecha
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
+    doc.setFontSize(10);
     doc.setTextColor(colors.burgundy);
     const clienteNombre = cliente.nombre || 'Cliente';
 
@@ -677,28 +681,28 @@ function drawSignatures(pdf, cliente) {
     const maxNameWidth = signatureWidth - 10;
     if (doc.getTextWidth(clienteNombre) > maxNameWidth) {
         const truncated = doc.splitTextToSize(clienteNombre, maxNameWidth / 2);
-        doc.text(truncated[0], rightX + (signatureWidth / 2), signatureTopY + 5, { align: 'center' });
+        doc.text(truncated[0], rightX + (signatureWidth / 2), signatureTopY + 6, { align: 'center' });
         if (truncated.length > 1) {
-            doc.text(truncated[1], rightX + (signatureWidth / 2), signatureTopY + 9, { align: 'center' });
+            doc.text(truncated[1], rightX + (signatureWidth / 2), signatureTopY + 11, { align: 'center' });
             doc.setFont('helvetica', 'normal');
-            doc.setFontSize(6);
+            doc.setFontSize(7);
             doc.setTextColor(colors.taupe);
-            doc.text('Cliente', rightX + (signatureWidth / 2), signatureTopY + 13, { align: 'center' });
+            doc.text('Cliente', rightX + (signatureWidth / 2), signatureTopY + 17, { align: 'center' });
         } else {
             doc.setFont('helvetica', 'normal');
-            doc.setFontSize(6);
+            doc.setFontSize(7);
             doc.setTextColor(colors.taupe);
-            doc.text('Cliente', rightX + (signatureWidth / 2), signatureTopY + 9, { align: 'center' });
+            doc.text('Cliente', rightX + (signatureWidth / 2), signatureTopY + 11, { align: 'center' });
         }
     } else {
-        doc.text(clienteNombre, rightX + (signatureWidth / 2), signatureTopY + 5, { align: 'center' });
+        doc.text(clienteNombre, rightX + (signatureWidth / 2), signatureTopY + 6, { align: 'center' });
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(6);
+        doc.setFontSize(7);
         doc.setTextColor(colors.taupe);
-        doc.text('Cliente', rightX + (signatureWidth / 2), signatureTopY + 9, { align: 'center' });
+        doc.text('Cliente', rightX + (signatureWidth / 2), signatureTopY + 11, { align: 'center' });
     }
 
-    pdf.y = signatureTopY + 20;
+    pdf.y = signatureTopY + 25;
 }
 
 // ===== 10. FOOTER =====
