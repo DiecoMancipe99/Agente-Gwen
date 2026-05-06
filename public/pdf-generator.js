@@ -610,40 +610,25 @@ function drawConditions(pdf) {
     const margin = PDF_CONFIG.margins.left;
     const contentWidth = PDF_CONFIG.pageWidth - (margin * 2);
 
-    // Caja con borde suave y fondo claro
-    doc.setFillColor(colors.creamLight);
-    doc.rect(margin, y - 5, contentWidth, 32, 'F');
-
-    // Título
+    // Título igual que las demás secciones
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
+    doc.setFontSize(11);
     doc.setTextColor(colors.burgundy);
-    doc.text('CONDICIONES Y NOTAS', margin + 3, y);
-
-    // Línea divisoria bajo el título
-    doc.setDrawColor(colors.taupe);
-    doc.setLineWidth(0.3);
-    doc.line(margin + 3, y + 2, margin + contentWidth - 3, y + 2);
+    doc.text('CONDICIONES Y NOTAS', margin, y);
 
     const conditions = [
-        'Términos de pago: 50% al inicio, 50% contra entrega.',
-        'Tiempo de entrega: A convenir según alcance.',
-        'Revisiones: 2 rondas por etapa.',
-        'Validez: 15 días desde emisión.'
+        '• Términos de pago: 50% al inicio, 50% contra entrega.',
+        '• Tiempo de entrega: A convenir según alcance.',
+        '• Revisiones: 2 rondas por etapa.',
+        '• Validez: 15 días desde emisión.'
     ];
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
     doc.setTextColor(colors.dark);
     conditions.forEach((cond, idx) => {
-        // Ícono de check simulado con un guión
-        doc.text('— ' + cond, margin + 5, y + 10 + (idx * 5));
+        doc.text(cond, margin, y + 7 + (idx * 5));
     });
-
-    // Borde exterior suave
-    doc.setDrawColor(colors.taupe);
-    doc.setLineWidth(0.3);
-    doc.rect(margin, y - 5, contentWidth, 32);
 }
 
 // ===== 9. SIGNATURES =====
