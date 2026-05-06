@@ -319,7 +319,7 @@ function drawServicesTable(pdf, items, moneda, incluirIva) {
 
     // Headers - ajustados para mejor distribución
     const headers = ['#', 'Descripción', 'Proyecto', 'Ref', 'V. Unit', 'Cant', 'Total'];
-    const colWidths = [10, 50, 40, 20, 28, 15, 27];
+    const colWidths = [10, 45, 35, 18, 30, 15, 37];
 
     // Preparar items
     const itemRows = items.map((item, idx) => ({
@@ -416,8 +416,15 @@ function drawServicesTable(pdf, items, moneda, incluirIva) {
 
         // Total - right aligned y en negrita
         doc.setFont('helvetica', 'bold');
-        doc.text(formatCurrency(item.subtotal, moneda), x + colWidths[6] - 2, currentY, { align: 'right' });
+        const totalX = x + colWidths[6] - 3;
+        const totalText = formatCurrency(item.subtotal, moneda);
+        // Si el texto es muy ancho, reducir tamaño
+        if (doc.getTextWidth(totalText) > colWidths[6] - 6) {
+            doc.setFontSize(6);
+        }
+        doc.text(totalText, totalX, currentY, { align: 'right' });
         doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7);
 
         currentY += rowHeight;
     });
