@@ -317,9 +317,9 @@ function drawServicesTable(pdf, items, moneda, incluirIva) {
 
     let tableY = pdf.y + 8;
 
-    // Headers - columnas más estrechas para que quepa todo
+    // Headers - columnas ajustadas para que Total quepa bien
     const headers = ['#', 'Descripción', 'Proyecto', 'Ref', 'V. Unit', 'Cant', 'Total'];
-    const colWidths = [8, 42, 32, 20, 28, 14, 46]; // Suma = 190 (contentWidth aprox)
+    const colWidths = [7, 38, 30, 18, 26, 12, 52]; // Suma = 183 (contentWidth aprox)
 
     // Preparar items y calcular alturas dinámicas
     const itemRows = items.map((item, idx) => {
@@ -331,6 +331,7 @@ function drawServicesTable(pdf, items, moneda, incluirIva) {
         doc.setFontSize(7);
         const descLines = doc.splitTextToSize(nombre, colWidths[1] - 4);
         const proyLines = proyecto ? doc.splitTextToSize(proyecto, colWidths[2] - 4) : ['-'];
+        const refLines = id ? doc.splitTextToSize(id, colWidths[3] - 4) : ['-'];
 
         return {
             num: idx + 1,
@@ -342,7 +343,8 @@ function drawServicesTable(pdf, items, moneda, incluirIva) {
             subtotal: (item.precio_unitario || item.valorUnitario || 0) * (item.cantidad || 1),
             descLines,
             proyLines,
-            rowHeight: Math.max(descLines.length, proyLines.length) * 4 + 3
+            refLines,
+            rowHeight: Math.max(descLines.length, proyLines.length, refLines.length) * 4 + 3
         };
     });
 
@@ -406,8 +408,8 @@ function drawServicesTable(pdf, items, moneda, incluirIva) {
         doc.text(item.proyLines, x + 2, currentY - 1);
         x += colWidths[2];
 
-        // Referencia/ID
-        doc.text(item.id || '-', x + 2, currentY);
+        // Referencia/ID - con wrapping
+        doc.text(item.refLines, x + 2, currentY - 1);
         x += colWidths[3];
 
         // Valor unitario - right aligned, contenido en su celda
