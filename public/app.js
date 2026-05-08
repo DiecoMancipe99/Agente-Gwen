@@ -11,6 +11,14 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 let currentUser = null;
 let currentSection = 'dashboard';
 
+// ===== FILTROS Y BUSQUEDA =====
+let ordenIngresos = 'reciente';
+let ordenGastos = 'reciente';
+let ordenSesiones = 'reciente';
+let busquedaIngresos = '';
+let busquedaGastos = '';
+let busquedaSesiones = '';
+
 // ===== SUPABASE CLIENT =====
 const supabase = createSupabaseClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
