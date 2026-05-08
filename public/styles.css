@@ -1129,16 +1129,216 @@ body {
     .movimiento-detail {
         font-size: 0.65rem;
     }
+
+    /* Isotipo en section headers - mobile (izquierda para no chocar con menu) */
+    .section-isotipo {
+        height: 50px;
+        left: 5px;
+        right: auto;
+    }
+
+    /* Isotipo en login - mobile */
+    .login-isotipo {
+        height: 80px;
+        margin: -15px auto 0.5rem;
+    }
+
+    /* Touch targets mas grandes para movil */
+    .btn-primary,
+    .btn-secondary,
+    .btn-delete,
+    .nav-item,
+    .tab-btn {
+        min-height: 44px;
+    }
+
+    /* Mejor espaciado para elementos interactivos */
+    .cliente-item,
+    .deuda-item {
+        touch-action: manipulation;
+    }
+
+    /* Inputs y selects - mejor tactil */
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        min-height: 44px;
+    }
 }
 
+/* Mobile landscape - optimización específica */
+@media (max-width: 768px) and (orientation: landscape) {
+    .main-content {
+        padding: 0.75rem;
+        padding-top: 0.5rem;
+    }
+
+    .section-header {
+        margin-bottom: 1rem;
+    }
+
     .section-header h1 {
-        font-size: 1.8rem;
+        font-size: 1.4rem;
+    }
+
+    .section-isotipo {
+        height: 40px;
+        left: 5px;
+        right: auto;
+    }
+
+    .card,
+    .form-card {
+        padding: 0.75rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .card h3 {
+        font-size: 1rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .metrics-grid {
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .metric-card {
+        padding: 0.5rem;
+    }
+
+    .metric-label {
+        font-size: 0.5rem;
+    }
+
+    .metric-value {
+        font-size: 1.1rem;
+    }
+
+    .data-table th,
+    .data-table td {
+        padding: 0.3rem 0.4rem;
+    }
+
+    .form-group {
+        margin-bottom: 0.75rem;
+    }
+
+    .form-group label {
+        font-size: 0.55rem;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        font-size: 0.7rem;
+        padding: 0.4rem 0.5rem;
+    }
+
+    .btn-primary,
+    .btn-secondary {
+        font-size: 0.55rem;
+        padding: 0.5rem 0.65rem;
+    }
+
+    .login-isotipo {
+        height: 60px;
+        margin: -10px auto 0.5rem;
+    }
+
+    .login-container {
+        padding: 1.5rem 1rem;
+    }
+
+    /* Sidebar en landscape - mas compacto */
+    .sidebar {
+        max-width: 240px;
+    }
+
+    .nav-item {
+        font-size: 0.65rem;
+        padding: 0.6rem 0.75rem;
+    }
+
+    /* Tablas en landscape - scroll optimizado */
+    .data-table {
+        font-size: 0.7rem;
+    }
+
+    .data-table th,
+    .data-table td {
+        padding: 0.25rem 0.4rem;
+    }
+}
+
+/* Mobile pequeño (iPhone SE, etc) */
+@media (max-width: 375px) {
+    .login-container {
+        padding: 1.5rem 1rem;
+    }
+
+    .logo {
+        font-size: 1.3rem;
+    }
+
+    .section-header h1 {
+        font-size: 1.5rem;
     }
 
     .section-tag {
         font-size: 0.6rem;
     }
 
+    .section-isotipo {
+        height: 35px;
+        left: 5px;
+        right: auto;
+    }
+
+    .login-isotipo {
+        height: 50px;
+        margin: -8px auto 0.5rem;
+    }
+
+    /* Elementos mas compactos para pantallas pequenas */
+    .sidebar {
+        max-width: 220px;
+    }
+
+    .nav-item {
+        font-size: 0.6rem;
+        padding: 0.5rem 0.6rem;
+    }
+
+    .metrics-grid {
+        gap: 0.5rem;
+    }
+
+    .metric-card {
+        padding: 0.5rem;
+    }
+
+    .metric-value {
+        font-size: 1.2rem;
+    }
+
+    .card h3 {
+        font-size: 1rem;
+    }
+
+    .deuda-header h4 {
+        font-size: 0.95rem;
+    }
+
+    .cliente-header h4 {
+        font-size: 1rem;
+    }
+
+    .cliente-codigo {
+        font-size: 0.75rem;
+        min-width: 60px;
+        padding: 0.2rem 0.4rem;
+    }
     /* Cards */
     .card,
     .form-card {
@@ -1270,35 +1470,6 @@ body {
     /* Progress bar */
     .progress-bar {
         height: 8px;
-    }
-}
-
-/* Mobile pequeño (iPhone SE, etc) */
-@media (max-width: 375px) {
-    .login-container {
-        padding: 1.5rem 1rem;
-    }
-
-    .logo {
-        font-size: 1.3rem;
-    }
-
-    .section-header h1 {
-        font-size: 1.5rem;
-    }
-
-    .nav-item {
-        font-size: 0.6rem;
-        padding: 0.5rem;
-    }
-
-    .metric-value {
-        font-size: 1.3rem;
-    }
-
-    .card,
-    .form-card {
-        padding: 1rem;
     }
 }
 
