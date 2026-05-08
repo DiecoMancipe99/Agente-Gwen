@@ -249,10 +249,10 @@ function drawClientTable(pdf, cliente) {
     doc.setTextColor(colors.burgundy);
     doc.text('DATOS DEL CLIENTE', margin, y);
 
-    const tableY = y + 6;
-    const rowHeight = 5;
+    const tableY = y + 5;
+    const rowHeight = 4.5;
 
-    // Datos en formato compacto horizontal (2 columnas)
+    // Datos en 2 columnas compactas
     const clienteData = [
         { label: 'Nombre', value: cliente.nombre || '-' },
         { label: 'Documento', value: cliente.documento || '-' },
@@ -260,46 +260,46 @@ function drawClientTable(pdf, cliente) {
         { label: 'Teléfono', value: cliente.telefono || '-' }
     ];
 
-    const neededSpace = 28;
+    const neededSpace = 24;
     if (pdf.getAvailableSpace() < neededSpace) {
         pdf.addPage();
     }
 
-    // Dibujar filas compactas en 2 columnas
-    clienteData.forEach((item, idx) => {
-        const currentY = tableY + (idx * rowHeight);
-        const colWidth = contentWidth / 2;
-        const col = idx % 2;
-        const xPos = margin + (col * colWidth) + (col * 3);
+    // Dibujar tabla compacta
+    doc.setFillColor(colors.creamLight);
+    doc.rect(margin, tableY - 2, contentWidth, (rowHeight * 2) + 2, 'F');
 
-        doc.setFillColor(colors.creamLight);
-        doc.rect(xPos, currentY - 3.5, colWidth - 3, rowHeight, 'F');
+    clienteData.forEach((item, idx) => {
+        const col = idx % 2;
+        const row = Math.floor(idx / 2);
+        const colWidth = contentWidth / 2;
+        const xPos = margin + (col * colWidth);
+        const currentY = tableY + (row * rowHeight);
 
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(6.5);
+        doc.setFontSize(6);
         doc.setTextColor(colors.taupe);
         doc.text(`${item.label}:`, xPos + 2, currentY);
 
         doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7);
         doc.setTextColor(colors.dark);
-        const valueX = xPos + 18;
-        const maxValueWidth = colWidth - 22;
+
+        const valueX = xPos + 14;
+        const maxValueWidth = colWidth - 16;
         const valueText = item.value;
 
-        if (doc.getTextWidth(valueText) > maxValueWidth) {
-            const truncated = doc.splitTextToSize(valueText, maxValueWidth / 2.5);
-            doc.text(truncated[0], valueX, currentY);
-        } else {
-            doc.text(valueText, valueX, currentY);
-        }
+        // Usar splitTextToSize para que nunca se salga
+        const wrappedText = doc.splitTextToSize(valueText, maxValueWidth);
+        doc.text(wrappedText, valueX, currentY);
     });
 
     // Borde exterior
     doc.setDrawColor(colors.taupe);
     doc.setLineWidth(0.3);
-    doc.rect(margin, tableY - 3.5, contentWidth, (rowHeight * 4));
+    doc.rect(margin, tableY - 2, contentWidth, (rowHeight * 2) + 2);
 
-    pdf.y = tableY + (rowHeight * 4) + 4;
+    pdf.y = tableY + (rowHeight * 2) + 4;
 }
 
 // ===== 5. SERVICES TABLE =====
@@ -384,30 +384,28 @@ function drawServicesTable(pdf, items, moneda, incluirIva) {
         doc.text(item.num.toString(), x, currentY);
         x += colWidths[0];
 
-        // Descripción - con wrapping controlado
-        const descMaxWidth = colWidths[1] - 4;
-        if (doc.getTextWidth(item.nombre) > descMaxWidth) {
-            pdf.textWrapped(item.nombre, x, currentY - 1, descMaxWidth, 3.5, 6);
-        } else {
-            doc.text(item.nombre, x, currentY);
-        }
+        // Descripción - con wrapping controlado usando splitTextToSize
+        const descMaxWidth = colWidths[1] - 6;
+        const wrappedDesc = doc.splitTextToSize(item.nombre, descMaxWidth);
+        doc.text(wrappedDesc, x + 2, currentY - 1);
         x += colWidths[1];
 
-        // Proyecto - con wrapping
-        const proyMaxWidth = colWidths[2] - 4;
-        if (item.proyecto && doc.getTextWidth(item.proyecto) > proyMaxWidth) {
-            pdf.textWrapped(item.proyecto, x, currentY - 1, proyMaxWidth, 3.5, 6);
-        } else {
-            doc.text(item.proyecto || '-', x, currentY);
-        }
+        // Proyecto - con wrapping usando splitTextToSize
+        const proyMaxWidth = colWidths[2] - 6;
+        const wrappedProy = item.proyecto ? doc.splitTextToSize(item.proyecto, proyMaxWidth) : ['-'];
+        doc.text(wrappedProy, x + 2, currentY - 1);
         x += colWidths[2];
 
-        // Referencia/ID
-        doc.text(item.id || '-', x, currentY);
+        // Referencia/ID - truncar si es muy largo
+        const refText = (item.id || '-').toString();
+        const refMaxWidth = colWidths[3] - 4;
+        const wrappedRef = doc.splitTextToSize(refText, refMaxWidth);
+        doc.text(wrappedRef, x + 2, currentY - 1);
         x += colWidths[3];
 
         // Valor unitario - right aligned
-        doc.text(formatCurrency(item.precio, moneda), x + colWidths[4] - 2, currentY, { align: 'right' });
+        const unitText = formatCurrency(item.precio, moneda);
+        doc.text(unitText, x + colWidths[4] - 2, currentY, { align: 'right' });
         x += colWidths[4];
 
         // Cantidad - right aligned
@@ -416,13 +414,10 @@ function drawServicesTable(pdf, items, moneda, incluirIva) {
 
         // Total - right aligned y en negrita
         doc.setFont('helvetica', 'bold');
-        const totalX = x + colWidths[6] - 3;
         const totalText = formatCurrency(item.subtotal, moneda);
-        // Si el texto es muy ancho, reducir tamaño
-        if (doc.getTextWidth(totalText) > colWidths[6] - 6) {
-            doc.setFontSize(6);
-        }
-        doc.text(totalText, totalX, currentY, { align: 'right' });
+        const totalMaxWidth = colWidths[6] - 6;
+        const wrappedTotal = doc.splitTextToSize(totalText, totalMaxWidth);
+        doc.text(wrappedTotal, x + colWidths[6] - 2, currentY, { align: 'right' });
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(7);
 
