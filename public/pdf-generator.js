@@ -249,11 +249,11 @@ function drawClientTable(pdf, cliente) {
     doc.setTextColor(colors.burgundy);
     doc.text('DATOS DEL CLIENTE', margin, y);
 
-    const tableY = y + 4;
-    const rowHeight = 5;
+    const tableY = y + 5;
+    const rowHeight = 6;
     const colWidth = contentWidth / 2;
 
-    const neededSpace = 22;
+    const neededSpace = 26;
     if (pdf.getAvailableSpace() < neededSpace) {
         pdf.addPage();
     }
@@ -266,7 +266,7 @@ function drawClientTable(pdf, cliente) {
         { label: 'Teléfono', value: cliente.telefono || '-' }
     ];
 
-    // Dibujar celdas
+    // Dibujar celdas con lineas divisorias
     clienteData.forEach((item, idx) => {
         const col = idx % 2;
         const row = Math.floor(idx / 2);
@@ -275,29 +275,37 @@ function drawClientTable(pdf, cliente) {
 
         // Fondo de celda
         doc.setFillColor(colors.cream);
-        doc.rect(xPos, currentY - 3, colWidth - 2, rowHeight, 'F');
+        doc.rect(xPos, currentY - 4, colWidth - 2, rowHeight, 'F');
 
         // Label
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(6);
+        doc.setFontSize(6.5);
         doc.setTextColor(colors.taupe);
-        doc.text(item.label + ':', xPos + 2, currentY - 0.5);
+        doc.text(item.label + ':', xPos + 3, currentY);
 
         // Value - usando splitTextToSize para que nunca se salga
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(7);
         doc.setTextColor(colors.dark);
 
-        const valueMaxWidth = colWidth - 14;
+        const valueMaxWidth = colWidth - 18;
         const valueText = item.value || '-';
         const wrappedValue = doc.splitTextToSize(valueText, valueMaxWidth);
-        doc.text(wrappedValue, xPos + 13, currentY - 0.5);
+        doc.text(wrappedValue, xPos + 20, currentY);
+
+        // Linea divisoria inferior (solo si no es la ultima fila)
+        if (idx < 3) {
+            doc.setDrawColor(colors.taupe);
+            doc.setLineWidth(0.2);
+            const dividerY = currentY + 2;
+            doc.line(xPos, dividerY, xPos + colWidth - 2, dividerY);
+        }
     });
 
     // Borde exterior
     doc.setDrawColor(colors.taupe);
     doc.setLineWidth(0.25);
-    doc.rect(margin, tableY - 3, contentWidth, rowHeight * 2);
+    doc.rect(margin, tableY - 4, contentWidth, rowHeight * 2);
 
     pdf.y = tableY + (rowHeight * 2) + 4;
 }
