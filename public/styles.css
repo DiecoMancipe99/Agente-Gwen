@@ -1,5 +1,62 @@
 /* Agente Gwen - Identidad Visual Dieco Mancipe */
 
+/* ===== FUENTES OFICIALES ===== */
+@font-face {
+    font-family: 'GT Alpina Fine';
+    src: url('fonts/GT-Alpina-Fine-Standard-Regular-Trial.otf') format('opentype');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'GT Alpina Fine';
+    src: url('fonts/GT-Alpina-Fine-Standard-Bold-Trial.otf') format('opentype');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Ufficio Mono';
+    src: url('fonts/UfficioMono-300.otf') format('opentype');
+    font-weight: 300;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Ufficio Mono';
+    src: url('fonts/UfficioMono-400.otf') format('opentype');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Ufficio Mono';
+    src: url('fonts/UfficioMono-500.otf') format('opentype');
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Ufficio Mono';
+    src: url('fonts/UfficioMono-600.otf') format('opentype');
+    font-weight: 600;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Ufficio Mono';
+    src: url('fonts/UfficioMono-700.otf') format('opentype');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+
 :root {
     --color-primary: #5e1c2e;      /* Burgundy */
     --color-cream: #f4f3e9;        /* Cream background */
@@ -8,8 +65,8 @@
     --color-cream-dark: #e8e6d9;   /* Cream más oscuro */
     --color-cream-darker: #d4d0c5;
 
-    --font-titles: 'Cormorant Garamond', Georgia, serif;
-    --font-body: 'Space Mono', monospace;
+    --font-titles: 'GT Alpina Fine', 'Cormorant Garamond', Georgia, serif;
+    --font-body: 'Ufficio Mono', 'Space Mono', monospace;
 
     --shadow-sm: 0 1px 3px rgba(94, 28, 46, 0.1);
     --shadow-md: 0 4px 12px rgba(94, 28, 46, 0.15);
@@ -71,6 +128,18 @@ body {
 
 .logo .light {
     font-weight: 300;
+}
+
+/* Logo imagen oficial */
+.logo-img {
+    max-width: 280px;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+}
+
+.logo-crema {
+    max-width: 240px;
 }
 
 .subtitle {
@@ -220,6 +289,12 @@ body {
 .sidebar-header {
     text-align: center;
     margin-bottom: 2rem;
+}
+
+.sidebar-header .logo-img {
+    max-width: 200px;
+    height: auto;
+    margin: 0 auto 0.75rem;
 }
 
 .sidebar-header .logo {
