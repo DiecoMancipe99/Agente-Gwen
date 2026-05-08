@@ -138,6 +138,14 @@ body {
     margin: 0 auto;
 }
 
+.login-isotipo {
+    height: 60px;
+    width: auto;
+    display: block;
+    margin: 0 auto 0.75rem;
+    opacity: 0.9;
+}
+
 .logo-crema {
     max-width: 240px;
 }
