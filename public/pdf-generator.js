@@ -307,7 +307,7 @@ function drawServicesTable(pdf, items, moneda, incluirIva) {
     const { doc, colors } = pdf;
     const margin = PDF_CONFIG.margins.left;
     const contentWidth = PDF_CONFIG.pageWidth - (margin * 2);
-    const rowHeight = 7;
+    const baseRowHeight = 7;
 
     // Título
     doc.setFont('helvetica', 'bold');
@@ -317,24 +317,38 @@ function drawServicesTable(pdf, items, moneda, incluirIva) {
 
     let tableY = pdf.y + 8;
 
-    // Headers - ajustados para mejor distribución
+    // Headers - columnas más estrechas para que quepa todo
     const headers = ['#', 'Descripción', 'Proyecto', 'Ref', 'V. Unit', 'Cant', 'Total'];
-    const colWidths = [10, 45, 35, 18, 30, 15, 37];
+    const colWidths = [8, 42, 32, 20, 28, 14, 46]; // Suma = 190 (contentWidth aprox)
 
-    // Preparar items
-    const itemRows = items.map((item, idx) => ({
-        num: idx + 1,
-        nombre: item.nombre || item.descripcion || '',
-        proyecto: item.proyecto || '',
-        id: item.id || '',
-        precio: item.precio_unitario || item.valorUnitario || 0,
-        cantidad: item.cantidad || 1,
-        subtotal: (item.precio_unitario || item.valorUnitario || 0) * (item.cantidad || 1)
-    }));
+    // Preparar items y calcular alturas dinámicas
+    const itemRows = items.map((item, idx) => {
+        const nombre = item.nombre || item.descripcion || '';
+        const proyecto = item.proyecto || '';
+        const id = item.id || '';
+
+        // Calcular líneas necesarias
+        doc.setFontSize(7);
+        const descLines = doc.splitTextToSize(nombre, colWidths[1] - 4);
+        const proyLines = proyecto ? doc.splitTextToSize(proyecto, colWidths[2] - 4) : ['-'];
+
+        return {
+            num: idx + 1,
+            nombre,
+            proyecto,
+            id,
+            precio: item.precio_unitario || item.valorUnitario || 0,
+            cantidad: item.cantidad || 1,
+            subtotal: (item.precio_unitario || item.valorUnitario || 0) * (item.cantidad || 1),
+            descLines,
+            proyLines,
+            rowHeight: Math.max(descLines.length, proyLines.length) * 4 + 3
+        };
+    });
 
     // Calcular espacio necesario
-    const headerHeight = rowHeight + 5;
-    const itemsHeight = itemRows.length * rowHeight;
+    const headerHeight = baseRowHeight + 5;
+    const itemsHeight = itemRows.reduce((sum, r) => sum + r.rowHeight, 0);
     const totalsHeight = incluirIva ? 28 : 22;
     const totalNeeded = headerHeight + itemsHeight + totalsHeight + 50;
 
@@ -349,15 +363,15 @@ function drawServicesTable(pdf, items, moneda, incluirIva) {
     }
 
     // Dibujar header
-    drawTableHeader(doc, margin, contentWidth, tableY, rowHeight, headers, colWidths, colors);
+    drawTableHeader(doc, margin, contentWidth, tableY, baseRowHeight, headers, colWidths, colors);
 
     // Items
     let totalSinIva = 0;
-    let currentY = tableY + rowHeight;
+    let currentY = tableY + baseRowHeight;
 
     itemRows.forEach((item, idx) => {
         // Verificar espacio para esta fila + totales
-        const spaceNeeded = rowHeight + 35;
+        const spaceNeeded = item.rowHeight + 35;
         if (currentY + spaceNeeded > PDF_CONFIG.pageHeight - PDF_CONFIG.margins.bottom) {
             pdf.addPage();
             const newTableY = PDF_CONFIG.margins.top + 8;
@@ -365,63 +379,54 @@ function drawServicesTable(pdf, items, moneda, incluirIva) {
             doc.setFontSize(10);
             doc.setTextColor(colors.burgundy);
             doc.text('(continuación)', margin + 50, PDF_CONFIG.margins.top);
-            drawTableHeader(doc, margin, contentWidth, newTableY, rowHeight, headers, colWidths, colors);
-            currentY = newTableY + rowHeight;
+            drawTableHeader(doc, margin, contentWidth, newTableY, baseRowHeight, headers, colWidths, colors);
+            currentY = newTableY + baseRowHeight;
         }
 
         totalSinIva += item.subtotal;
         const bgColor = idx % 2 === 0 ? colors.cream : colors.creamLight;
 
         doc.setFillColor(bgColor);
-        doc.rect(margin, currentY - 5, contentWidth, rowHeight, 'F');
+        doc.rect(margin, currentY - 5, contentWidth, item.rowHeight, 'F');
 
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(7);
         doc.setTextColor(colors.dark);
 
-        let x = margin + 3;
+        let x = margin + 2;
         // Número - centrado
         doc.text(item.num.toString(), x, currentY);
         x += colWidths[0];
 
-        // Descripción - con wrapping controlado usando splitTextToSize
-        const descMaxWidth = colWidths[1] - 6;
-        const wrappedDesc = doc.splitTextToSize(item.nombre, descMaxWidth);
-        doc.text(wrappedDesc, x + 2, currentY - 1);
+        // Descripción - con wrapping, texto contenido en su celda
+        doc.text(item.descLines, x + 2, currentY - 1);
         x += colWidths[1];
 
-        // Proyecto - con wrapping usando splitTextToSize
-        const proyMaxWidth = colWidths[2] - 6;
-        const wrappedProy = item.proyecto ? doc.splitTextToSize(item.proyecto, proyMaxWidth) : ['-'];
-        doc.text(wrappedProy, x + 2, currentY - 1);
+        // Proyecto - con wrapping
+        doc.text(item.proyLines, x + 2, currentY - 1);
         x += colWidths[2];
 
-        // Referencia/ID - truncar si es muy largo
-        const refText = (item.id || '-').toString();
-        const refMaxWidth = colWidths[3] - 4;
-        const wrappedRef = doc.splitTextToSize(refText, refMaxWidth);
-        doc.text(wrappedRef, x + 2, currentY - 1);
+        // Referencia/ID
+        doc.text(item.id || '-', x + 2, currentY);
         x += colWidths[3];
 
-        // Valor unitario - right aligned
+        // Valor unitario - right aligned, contenido en su celda
         const unitText = formatCurrency(item.precio, moneda);
-        doc.text(unitText, x + colWidths[4] - 2, currentY, { align: 'right' });
+        doc.text(unitText, x + colWidths[4] - 1, currentY, { align: 'right' });
         x += colWidths[4];
 
         // Cantidad - right aligned
-        doc.text(item.cantidad.toString(), x + colWidths[5] - 2, currentY, { align: 'right' });
+        doc.text(item.cantidad.toString(), x + colWidths[5] - 1, currentY, { align: 'right' });
         x += colWidths[5];
 
         // Total - right aligned y en negrita
         doc.setFont('helvetica', 'bold');
         const totalText = formatCurrency(item.subtotal, moneda);
-        const totalMaxWidth = colWidths[6] - 6;
-        const wrappedTotal = doc.splitTextToSize(totalText, totalMaxWidth);
-        doc.text(wrappedTotal, x + colWidths[6] - 2, currentY, { align: 'right' });
+        doc.text(totalText, x + colWidths[6] - 1, currentY, { align: 'right' });
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(7);
 
-        currentY += rowHeight;
+        currentY += item.rowHeight;
     });
 
     // Totales - mejor presentados
