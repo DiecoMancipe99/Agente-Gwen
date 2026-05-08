@@ -974,7 +974,10 @@ async function loadIngresosLista() {
                 </div>
             </div>
             ${i.notas ? `<p style="font-size:0.75rem;margin-top:0.5rem"><strong>Notas:</strong> ${i.notas}</p>` : ''}
-            <button class="btn-secondary" onclick="eliminarIngreso('${i.id}')" style="margin-top:1rem;font-size:0.65rem;">🗑️ Eliminar</button>
+            <div style="display:flex;gap:0.5rem;margin-top:1rem;">
+                <button class="btn-secondary" onclick="editarIngreso('${i.id}')" style="font-size:0.65rem;">✏️ Editar</button>
+                <button class="btn-secondary" onclick="eliminarIngreso('${i.id}')" style="font-size:0.65rem;">🗑️ Eliminar</button>
+            </div>
         </div>
     `).join('');
 }
@@ -1026,7 +1029,10 @@ async function loadGastosLista() {
                     <div class="deuda-detail-value">${g.metodo_pago || 'N/A'}</div>
                 </div>
             </div>
-            <button class="btn-secondary" onclick="eliminarGasto('${g.id}')" style="margin-top:1rem;font-size:0.65rem;">🗑️ Eliminar</button>
+            <div style="display:flex;gap:0.5rem;margin-top:1rem;">
+                <button class="btn-secondary" onclick="editarGasto('${g.id}')" style="font-size:0.65rem;">✏️ Editar</button>
+                <button class="btn-secondary" onclick="eliminarGasto('${g.id}')" style="font-size:0.65rem;">🗑️ Eliminar</button>
+            </div>
         </div>
     `).join('');
 }
@@ -1051,6 +1057,114 @@ async function eliminarGasto(id) {
         alert('Error al eliminar: ' + error.message);
         return;
     }
+    await loadGastosLista();
+    if (currentSection === 'dashboard') await loadDashboard();
+}
+
+async function editarIngreso(id) {
+    // Obtener datos del ingreso
+    const session = JSON.parse(localStorage.getItem('supabase_session') || 'null');
+    const token = session?.access_token || SUPABASE_ANON_KEY;
+
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/ingresos?id=eq.${id}`, {
+        headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        }
+    });
+    const data = await res.json();
+    const ingreso = data[0];
+
+    if (!ingreso) {
+        alert('No se encontró el ingreso');
+        return;
+    }
+
+    // Mostrar modal de edición
+    const nuevoMonto = prompt('Monto:', ingreso.monto);
+    if (nuevoMonto === null) return; // Cancelado
+
+    const nuevaFecha = prompt('Fecha (YYYY-MM-DD):', ingreso.fecha);
+    if (nuevaFecha === null) return;
+
+    const nuevoMetodo = prompt('Método de pago (Nequi, Efectivo, Transferencia...):', ingreso.metodo_pago || '');
+    if (nuevoMetodo === null) return;
+
+    const nuevaReferencia = prompt('Referencia:', ingreso.referencia || '');
+    const nuevasNotas = prompt('Notas:', ingreso.notas || '');
+
+    const ingresoActualizado = {
+        monto: parseFloat(nuevoMonto) || ingreso.monto,
+        fecha: nuevaFecha || ingreso.fecha,
+        metodo_pago: nuevoMetodo || ingreso.metodo_pago,
+        referencia: nuevaReferencia || ingreso.referencia,
+        notas: nuevasNotas || ingreso.notas
+    };
+
+    const { error } = await supabase.from('ingresos').update(ingresoActualizado).eq('id', id);
+    if (error) {
+        alert('Error al actualizar: ' + error.message);
+        return;
+    }
+
+    alert('✅ Ingreso actualizado');
+    await loadIngresosLista();
+    if (currentSection === 'dashboard') await loadDashboard();
+}
+
+async function editarGasto(id) {
+    // Obtener datos del gasto
+    const session = JSON.parse(localStorage.getItem('supabase_session') || 'null');
+    const token = session?.access_token || SUPABASE_ANON_KEY;
+
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/gastos?id=eq.${id}`, {
+        headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        }
+    });
+    const data = await res.json();
+    const gasto = data[0];
+
+    if (!gasto) {
+        alert('No se encontró el gasto');
+        return;
+    }
+
+    // Mostrar modal de edición
+    const nuevoMonto = prompt('Monto:', gasto.monto);
+    if (nuevoMonto === null) return;
+
+    const nuevaFecha = prompt('Fecha (YYYY-MM-DD):', gasto.fecha);
+    if (nuevaFecha === null) return;
+
+    const nuevaCategoria = prompt('Categoría:', gasto.categoria);
+    if (nuevaCategoria === null) return;
+
+    const nuevaDescripcion = prompt('Descripción:', gasto.descripcion || '');
+    const nuevoProveedor = prompt('Proveedor:', gasto.proveedor || '');
+    const nuevoMetodo = prompt('Método de pago:', gasto.metodo_pago || '');
+    const nuevaReferencia = prompt('Referencia:', gasto.referencia || '');
+
+    const gastoActualizado = {
+        monto: parseFloat(nuevoMonto) || gasto.monto,
+        fecha: nuevaFecha || gasto.fecha,
+        categoria: nuevaCategoria || gasto.categoria,
+        descripcion: nuevaDescripcion || gasto.descripcion,
+        proveedor: nuevoProveedor || gasto.proveedor,
+        metodo_pago: nuevoMetodo || gasto.metodo_pago,
+        referencia: nuevaReferencia || gasto.referencia
+    };
+
+    const { error } = await supabase.from('gastos').update(gastoActualizado).eq('id', id);
+    if (error) {
+        alert('Error al actualizar: ' + error.message);
+        return;
+    }
+
+    alert('✅ Gasto actualizado');
     await loadGastosLista();
     if (currentSection === 'dashboard') await loadDashboard();
 }
@@ -1755,6 +1869,8 @@ async function init() {
 window.deleteCliente = deleteCliente;
 window.eliminarIngreso = eliminarIngreso;
 window.eliminarGasto = eliminarGasto;
+window.editarIngreso = editarIngreso;
+window.editarGasto = editarGasto;
 window.eliminarProyecto = eliminarProyecto;
 window.eliminarDeuda = eliminarDeuda;
 window.eliminarSesion = eliminarSesion;
