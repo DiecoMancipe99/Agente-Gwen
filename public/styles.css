@@ -440,6 +440,7 @@ body {
 }
 
 .section-header {
+    position: relative;
     text-align: center;
     margin-bottom: 2rem;
 }
@@ -468,10 +469,14 @@ body {
 }
 
 .section-isotipo {
-    height: 40px;
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 80px;
     width: auto;
     object-fit: contain;
-    opacity: 0.9;
+    opacity: 0.95;
 }
 
 /* ===== CARDS ===== */
