@@ -794,6 +794,62 @@ function sugerirCategoriaGasto(descripcion) {
 }
 
 // ===== GESTIONAR =====
+// Estado de filtros
+let ordenIngresos = 'reciente';
+let ordenGastos = 'reciente';
+let ordenSesiones = 'reciente';
+let busquedaIngresos = '';
+let busquedaGastos = '';
+let busquedaSesiones = '';
+
+// Funciones para cambiar orden
+function cambiarOrdenIngresos(valor) {
+    ordenIngresos = valor;
+    loadIngresosLista();
+}
+
+function cambiarOrdenGastos(valor) {
+    ordenGastos = valor;
+    loadGastosLista();
+}
+
+function cambiarOrdenSesiones(valor) {
+    ordenSesiones = valor;
+    loadSesionesTabla();
+}
+
+// Funciones para búsqueda
+function setupBuscadores() {
+    // Buscador ingresos
+    const buscadorIngresos = document.getElementById('buscador-ingresos');
+    if (buscadorIngresos) {
+        buscadorIngresos.addEventListener('input', (e) => {
+            busquedaIngresos = e.target.value;
+            loadIngresosLista();
+        });
+    }
+
+    // Buscador gastos
+    const buscadorGastos = document.getElementById('buscador-gastos');
+    if (buscadorGastos) {
+        buscadorGastos.addEventListener('input', (e) => {
+            busquedaGastos = e.target.value;
+            loadGastosLista();
+        });
+    }
+
+    // Buscador sesiones
+    const buscadorSesiones = document.getElementById('buscador-sesiones');
+    if (buscadorSesiones) {
+        buscadorSesiones.addEventListener('input', (e) => {
+            busquedaSesiones = e.target.value;
+            loadSesionesTabla();
+        });
+    }
+}
+
+// ===== GESTIONAR =====
+
 async function loadIngresosLista() {
     const { data: ingresos } = await supabase.from('ingresos')
         .select('*, clientes(nombre), proyectos(nombre_proyecto)');
@@ -805,7 +861,23 @@ async function loadIngresosLista() {
         return;
     }
 
-    container.innerHTML = ingresos.map(i => `
+    // Ordenar por fecha
+    let ingresosOrdenados = [...ingresos].sort((a, b) => {
+        const dateA = new Date(a.fecha || 0);
+        const dateB = new Date(b.fecha || 0);
+        return ordenIngresos === 'reciente' ? dateB - dateA : dateA - dateB;
+    });
+
+    // Filtrar por búsqueda
+    if (busquedaIngresos) {
+        const busqueda = busquedaIngresos.toLowerCase();
+        ingresosOrdenados = ingresosOrdenados.filter(i =>
+            i.clientes?.nombre?.toLowerCase().includes(busqueda) ||
+            i.proyectos?.nombre_proyecto?.toLowerCase().includes(busqueda)
+        );
+    }
+
+    container.innerHTML = ingresosOrdenados.map(i => `
         <div class="deuda-item">
             <div class="deuda-header">
                 <h4>${i.clientes?.nombre || 'Cliente'} - ${formatCurrency(i.monto)}</h4>
@@ -841,7 +913,24 @@ async function loadGastosLista() {
         return;
     }
 
-    container.innerHTML = gastos.map(g => `
+    // Ordenar por fecha
+    let gastosOrdenados = [...gastos].sort((a, b) => {
+        const dateA = new Date(a.fecha || 0);
+        const dateB = new Date(b.fecha || 0);
+        return ordenGastos === 'reciente' ? dateB - dateA : dateA - dateB;
+    });
+
+    // Filtrar por búsqueda (descripcion o proveedor)
+    if (busquedaGastos) {
+        const busqueda = busquedaGastos.toLowerCase();
+        gastosOrdenados = gastosOrdenados.filter(g =>
+            g.descripcion?.toLowerCase().includes(busqueda) ||
+            g.proveedor?.toLowerCase().includes(busqueda) ||
+            g.categoria?.toLowerCase().includes(busqueda)
+        );
+    }
+
+    container.innerHTML = gastosOrdenados.map(g => `
         <div class="deuda-item">
             <div class="deuda-header">
                 <h4>${g.categoria} - ${formatCurrency(g.monto)}</h4>
@@ -1110,6 +1199,22 @@ async function loadSesionesTabla() {
     if (!sesiones || sesiones.length === 0) {
         tableEl.innerHTML = '<p style="opacity:0.6">No hay sesiones registradas - ¡Comenzá de cero!</p>';
         return;
+    }
+
+    // Ordenar por fecha
+    let sesionesOrdenadas = [...sesiones].sort((a, b) => {
+        const dateA = new Date(a.fecha || 0);
+        const dateB = new Date(b.fecha || 0);
+        return ordenSesiones === 'reciente' ? dateB - dateA : dateA - dateB;
+    });
+
+    // Filtrar por búsqueda (cliente o proyecto)
+    if (busquedaSesiones) {
+        const busqueda = busquedaSesiones.toLowerCase();
+        sesionesOrdenadas = sesionesOrdenadas.filter(s =>
+            s.clientes?.nombre?.toLowerCase().includes(busqueda) ||
+            s.proyectos?.nombre_proyecto?.toLowerCase().includes(busqueda)
+        );
     }
 
     tableEl.innerHTML = `
@@ -1559,6 +1664,7 @@ async function init() {
     setupTabs();
     setupModalCliente();
     setupMobileMenu();
+    setupBuscadores();
     await checkAuth();
 }
 
