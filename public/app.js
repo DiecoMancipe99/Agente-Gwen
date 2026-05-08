@@ -1682,6 +1682,13 @@ function setupTabs() {
 
             btn.classList.add('active');
             document.getElementById(tabId).classList.add('active');
+
+            // Recargar datos según el tab
+            if (tabId === 'tab-ingresos') {
+                loadIngresosLista();
+            } else if (tabId === 'tab-gastos') {
+                loadGastosLista();
+            }
         });
     });
 }
