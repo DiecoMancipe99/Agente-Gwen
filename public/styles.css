@@ -139,10 +139,10 @@ body {
 }
 
 .login-isotipo {
-    height: 60px;
+    height: 90px;
     width: auto;
     display: block;
-    margin: 0 auto 0.75rem;
+    margin: 0 auto 1.5rem;
     opacity: 0.9;
 }
 
