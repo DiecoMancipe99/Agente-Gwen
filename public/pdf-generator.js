@@ -245,14 +245,20 @@ function drawClientTable(pdf, cliente) {
     const contentWidth = PDF_CONFIG.pageWidth - (margin * 2);
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
+    doc.setFontSize(9);
     doc.setTextColor(colors.burgundy);
     doc.text('DATOS DEL CLIENTE', margin, y);
 
-    const tableY = y + 5;
-    const rowHeight = 4.5;
+    const tableY = y + 4;
+    const rowHeight = 5;
+    const colWidth = contentWidth / 2;
 
-    // Datos en 2 columnas compactas
+    const neededSpace = 22;
+    if (pdf.getAvailableSpace() < neededSpace) {
+        pdf.addPage();
+    }
+
+    // Datos del cliente
     const clienteData = [
         { label: 'Nombre', value: cliente.nombre || '-' },
         { label: 'Documento', value: cliente.documento || '-' },
@@ -260,44 +266,38 @@ function drawClientTable(pdf, cliente) {
         { label: 'Teléfono', value: cliente.telefono || '-' }
     ];
 
-    const neededSpace = 24;
-    if (pdf.getAvailableSpace() < neededSpace) {
-        pdf.addPage();
-    }
-
-    // Dibujar tabla compacta
-    doc.setFillColor(colors.creamLight);
-    doc.rect(margin, tableY - 2, contentWidth, (rowHeight * 2) + 2, 'F');
-
+    // Dibujar celdas
     clienteData.forEach((item, idx) => {
         const col = idx % 2;
         const row = Math.floor(idx / 2);
-        const colWidth = contentWidth / 2;
         const xPos = margin + (col * colWidth);
         const currentY = tableY + (row * rowHeight);
 
+        // Fondo de celda
+        doc.setFillColor(colors.cream);
+        doc.rect(xPos, currentY - 3, colWidth - 2, rowHeight, 'F');
+
+        // Label
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(6);
         doc.setTextColor(colors.taupe);
-        doc.text(`${item.label}:`, xPos + 2, currentY);
+        doc.text(item.label + ':', xPos + 2, currentY - 0.5);
 
+        // Value - usando splitTextToSize para que nunca se salga
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(7);
         doc.setTextColor(colors.dark);
 
-        const valueX = xPos + 14;
-        const maxValueWidth = colWidth - 16;
-        const valueText = item.value;
-
-        // Usar splitTextToSize para que nunca se salga
-        const wrappedText = doc.splitTextToSize(valueText, maxValueWidth);
-        doc.text(wrappedText, valueX, currentY);
+        const valueMaxWidth = colWidth - 14;
+        const valueText = item.value || '-';
+        const wrappedValue = doc.splitTextToSize(valueText, valueMaxWidth);
+        doc.text(wrappedValue, xPos + 13, currentY - 0.5);
     });
 
     // Borde exterior
     doc.setDrawColor(colors.taupe);
-    doc.setLineWidth(0.3);
-    doc.rect(margin, tableY - 2, contentWidth, (rowHeight * 2) + 2);
+    doc.setLineWidth(0.25);
+    doc.rect(margin, tableY - 3, contentWidth, rowHeight * 2);
 
     pdf.y = tableY + (rowHeight * 2) + 4;
 }
