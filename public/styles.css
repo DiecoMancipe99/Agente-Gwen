@@ -468,8 +468,8 @@ body {
 }
 
 .section-isotipo {
-    width: 48px;
-    height: 48px;
+    height: 40px;
+    width: auto;
     object-fit: contain;
     opacity: 0.9;
 }
