@@ -72,6 +72,9 @@
                 <button class="nav-item" data-section="sesiones">
                     <span class="icon">📅</span> Sesiones
                 </button>
+                <button class="nav-item" data-section="resumen">
+                    <span class="icon">📋</span> Resumen Mensual
+                </button>
                 <button class="nav-item" data-section="reportes">
                     <span class="icon">📈</span> Reportes
                 </button>
@@ -581,6 +584,51 @@
                         <button type="submit" class="btn-primary btn-full">Crear Sesión</button>
                         <div id="sesion-success" class="success-message"></div>
                     </form>
+                </div>
+            </section>
+
+            <!-- Resumen Mensual Section -->
+            <section id="section-resumen" class="section">
+                <div class="section-header">
+                    <div class="section-tag">Análisis Mensual</div>
+                    <h1>Resumen Mensual</h1>
+                </div>
+
+                <!-- Navegación entre meses -->
+                <div class="card" style="margin-bottom: 1.5rem;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;">
+                        <button onclick="cambiarMes(-1)" class="btn-secondary" style="padding:0.5rem 1rem;">◄ Anterior</button>
+                        <h2 id="resumen-mes-titulo" style="font-family:'Cormorant Garamond',serif;font-size:1.5rem;margin:0;"></h2>
+                        <button onclick="cambiarMes(1)" class="btn-secondary" style="padding:0.5rem 1rem;">Siguiente ►</button>
+                    </div>
+                </div>
+
+                <!-- Cards de totales -->
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-label">Ingresos del Mes</div>
+                        <div class="metric-value" id="resumen-ingresos" style="color:var(--color-primary)">$0</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Gastos del Mes</div>
+                        <div class="metric-value" id="resumen-gastos" style="color:var(--color-taupe)">$0</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Balance</div>
+                        <div class="metric-value" id="resumen-balance">$0</div>
+                    </div>
+                </div>
+
+                <!-- Detalle de ingresos -->
+                <div class="card" style="margin-top: 1.5rem;">
+                    <h3>💰 Ingresos del Mes</h3>
+                    <div id="resumen-ingresos-lista"></div>
+                </div>
+
+                <!-- Detalle de gastos -->
+                <div class="card" style="margin-top: 1.5rem;">
+                    <h3>💸 Gastos del Mes</h3>
+                    <div id="resumen-gastos-lista"></div>
                 </div>
             </section>
 

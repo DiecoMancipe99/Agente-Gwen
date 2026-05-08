@@ -279,6 +279,9 @@ async function loadSectionData(section) {
             await loadSesionesTabla();
             document.getElementById('sesion-fecha').valueAsDate = new Date();
             break;
+        case 'resumen':
+            await loadResumenMensual();
+            break;
         case 'reportes':
             await loadReporteProyectos();
             await loadFlujoCaja();
@@ -793,14 +796,79 @@ function sugerirCategoriaGasto(descripcion) {
     sugerenciasEl.textContent = '';
 }
 
+// ===== RESUMEN MENSUAL =====
+let mesActual = new Date();
+
+function cambiarMes(delta) {
+    mesActual.setMonth(mesActual.getMonth() + delta);
+    loadResumenMensual();
+}
+
+async function loadResumenMensual() {
+    const year = mesActual.getFullYear();
+    const month = mesActual.getMonth(); // 0-11
+
+    // Actualizar título
+    const mesNombre = mesActual.toLocaleString('es-CO', { month: 'long', year: 'numeric' });
+    document.getElementById('resumen-mes-titulo').textContent = mesNombre.charAt(0).toUpperCase() + mesNombre.slice(1);
+
+    // Obtener datos del mes
+    const mesStr = `${year}-${String(month + 1).padStart(2, '0')}`;
+
+    const { data: ingresosData } = await supabase.from('ingresos')
+        .select('*, clientes(nombre), proyectos(nombre_proyecto)');
+    const { data: gastosData } = await supabase.from('gastos').select('*');
+
+    // Filtrar por mes
+    const ingresos = (ingresosData || []).filter(i => i.fecha?.startsWith(mesStr));
+    const gastos = (gastosData || []).filter(g => g.fecha?.startsWith(mesStr));
+
+    // Calcular totales
+    const totalIngresos = ingresos.reduce((sum, i) => sum + (parseFloat(i.monto) || 0), 0);
+    const totalGastos = gastos.reduce((sum, g) => sum + (parseFloat(g.monto) || 0), 0);
+    const balance = totalIngresos - totalGastos;
+
+    // Actualizar cards
+    document.getElementById('resumen-ingresos').textContent = formatCurrency(totalIngresos);
+    document.getElementById('resumen-gastos').textContent = formatCurrency(totalGastos);
+
+    const balanceEl = document.getElementById('resumen-balance');
+    balanceEl.textContent = formatCurrency(balance);
+    balanceEl.style.color = balance >= 0 ? '#2d6a4f' : '#c41e3a';
+
+    // Renderizar listas
+    const ingresosLista = document.getElementById('resumen-ingresos-lista');
+    if (ingresos.length > 0) {
+        ingresosLista.innerHTML = ingresos.map(i => `
+            <div style="display:flex;justify-content:space-between;padding:0.75rem 0;border-bottom:1px solid rgba(94,28,46,0.1);">
+                <div>
+                    <div style="font-weight:600;">${i.clientes?.nombre || 'Cliente'}</div>
+                    <div style="font-size:0.75rem;opacity:0.7;">${i.proyectos?.nombre_proyecto || 'Sin proyecto'} | ${i.metodo_pago || 'N/A'}</div>
+                </div>
+                <div style="font-weight:600;color:var(--color-primary);">${formatCurrency(i.monto)}</div>
+            </div>
+        `).join('');
+    } else {
+        ingresosLista.innerHTML = '<p style="opacity:0.6;text-align:center;padding:1rem;">No hay ingresos este mes</p>';
+    }
+
+    const gastosLista = document.getElementById('resumen-gastos-lista');
+    if (gastos.length > 0) {
+        gastosLista.innerHTML = gastos.map(g => `
+            <div style="display:flex;justify-content:space-between;padding:0.75rem 0;border-bottom:1px solid rgba(94,28,46,0.1);">
+                <div>
+                    <div style="font-weight:600;">${g.categoria}</div>
+                    <div style="font-size:0.75rem;opacity:0.7;">${g.descripcion || 'Sin descripción'} | ${g.proveedor || 'N/A'}</div>
+                </div>
+                <div style="font-weight:600;color:var(--color-taupe);">${formatCurrency(g.monto)}</div>
+            </div>
+        `).join('');
+    } else {
+        gastosLista.innerHTML = '<p style="opacity:0.6;text-align:center;padding:1rem;">No hay gastos este mes</p>';
+    }
+}
+
 // ===== GESTIONAR =====
-// Estado de filtros
-let ordenIngresos = 'reciente';
-let ordenGastos = 'reciente';
-let ordenSesiones = 'reciente';
-let busquedaIngresos = '';
-let busquedaGastos = '';
-let busquedaSesiones = '';
 
 // Funciones para cambiar orden
 function cambiarOrdenIngresos(valor) {
@@ -1678,6 +1746,10 @@ window.eliminarSesion = eliminarSesion;
 window.cambiarEstatusProyecto = cambiarEstatusProyecto;
 window.registrarPagoDeuda = registrarPagoDeuda;
 window.generarFacturaProyecto = generarFacturaProyecto;
+window.cambiarOrdenIngresos = cambiarOrdenIngresos;
+window.cambiarOrdenGastos = cambiarOrdenGastos;
+window.cambiarOrdenSesiones = cambiarOrdenSesiones;
+window.cambiarMes = cambiarMes;
 window.toggleConceptoCustom = () => {
     const select = document.getElementById('factura-concepto');
     const customGroup = document.getElementById('concepto-custom-group');
