@@ -279,6 +279,10 @@ async function loadSectionData(section) {
             await loadClientesSelect('proyecto-cliente');
             await loadProyectosTabla();
             break;
+        case 'portafolio':
+            await cargarPortafolio();
+            setupPortafolioSearch();
+            break;
         case 'deudas':
             await loadDeudasLista();
             break;
@@ -1771,6 +1775,7 @@ function setupForms() {
     document.getElementById('form-proyecto').addEventListener('submit', handleProyectoSubmit);
     document.getElementById('form-deuda').addEventListener('submit', handleDeudaSubmit);
     document.getElementById('form-sesion').addEventListener('submit', handleSesionSubmit);
+    document.getElementById('form-portafolio').addEventListener('submit', handlePortafolioSubmit);
 
     // IA sugerencia para gastos
     document.getElementById('gasto-descripcion').addEventListener('input', (e) => {
@@ -1888,6 +1893,12 @@ window.toggleConceptoCustom = () => {
         customGroup.style.display = select.value === 'custom' ? 'block' : 'none';
     }
 };
+// Portafolio Musical
+window.cargarPortafolio = cargarPortafolio;
+window.togglePortafolioVisibilidad = togglePortafolioVisibilidad;
+window.editarPortafolioProyecto = editarPortafolioProyecto;
+window.eliminarPortafolioProyecto = eliminarPortafolioProyecto;
+window.setupPortafolioSearch = setupPortafolioSearch;
 
 // Start app
 init();
@@ -2177,5 +2188,303 @@ function cerrarModalFactura() {
     const modal = document.getElementById('modal-factura');
     if (modal) {
         modal.remove();
+    }
+}
+
+// ===== PORTAFOLIO MUSICAL =====
+
+let busquedaPortafolio = '';
+let filtroEstadoPortafolio = 'todos';
+
+async function cargarPortafolio() {
+    const lista = document.getElementById('lista-portafolio');
+    const buscador = document.getElementById('buscador-portafolio');
+    const filtroSelect = document.getElementById('filtro-estado-portafolio');
+
+    if (buscador) busquedaPortafolio = buscador.value.toLowerCase();
+    if (filtroSelect) filtroEstadoPortafolio = filtroSelect.value;
+
+    lista.innerHTML = '<div style="text-align:center;padding:2rem;">Cargando proyectos...</div>';
+
+    try {
+        const { data: proyectos, error } = await supabase.from('proyectos_musicales').select('*');
+
+        if (error) throw error;
+
+        // Filtrar
+        let filtrados = (proyectos || []).sort((a, b) => (a.orden || 0) - (b.orden || 0));
+
+        if (busquedaPortafolio) {
+            filtrados = filtrados.filter(p =>
+                (p.titulo && p.titulo.toLowerCase().includes(busquedaPortafolio)) ||
+                (p.artista && p.artista.toLowerCase().includes(busquedaPortafolio))
+            );
+        }
+
+        if (filtroEstadoPortafolio === 'visibles') {
+            filtrados = filtrados.filter(p => p.activo !== false);
+        } else if (filtroEstadoPortafolio === 'ocultos') {
+            filtrados = filtrados.filter(p => p.activo === false);
+        }
+
+        // Actualizar stats
+        const total = proyectos?.length || 0;
+        const visibles = proyectos?.filter(p => p.activo !== false).length || 0;
+        const ocultos = proyectos?.filter(p => p.activo === false).length || 0;
+
+        document.getElementById('portafolio-total').textContent = total;
+        document.getElementById('portafolio-visibles').textContent = visibles;
+        document.getElementById('portafolio-ocultos').textContent = ocultos;
+
+        if (filtrados.length === 0) {
+            lista.innerHTML = `
+                <div class="no-results" style="text-align:center;padding:2rem;">
+                    <h3>No se encontraron proyectos</h3>
+                    <p>${busquedaPortafolio ? 'Intentá con otra búsqueda' : 'Agregá tu primer proyecto musical'}</p>
+                </div>
+            `;
+            return;
+        }
+
+        lista.innerHTML = `
+            <div style="display:grid;gap:0.75rem;">
+                ${filtrados.map(p => `
+                    <div class="portafolio-item" style="
+                        display:flex;
+                        justify-content:space-between;
+                        align-items:center;
+                        padding:0.75rem 1rem;
+                        background:${p.activo === false ? 'rgba(239,68,68,0.05)' : 'rgba(94,28,46,0.03)'};
+                        border-radius:6px;
+                        border-left:3px solid ${p.activo === false ? '#dc2626' : '#16a34a'};
+                    ">
+                        <div style="flex:1;min-width:0;">
+                            <div style="display:flex;align-items:center;gap:0.5rem;">
+                                <strong style="font-family:'Cormorant Garamond';font-size:1.1rem;">${p.titulo || 'Sin título'}</strong>
+                                ${p.activo === false ? '<span style="font-size:0.7rem;background:#dc2626;color:white;padding:2px 6px;border-radius:3px;">OCULTO</span>' : '<span style="font-size:0.7rem;background:#16a34a;color:white;padding:2px 6px;border-radius:3px;">VISIBLE</span>'}
+                            </div>
+                            <div style="font-size:0.85rem;color:var(--color-taupe);">${p.artista || 'Artista'} ${p.anio ? `• ${p.anio}` : ''} ${p.genero ? `• ${p.genero}` : ''}</div>
+                            <div style="font-size:0.75rem;color:var(--color-taupe);margin-top:0.25rem;">
+                                ${p.servicios ? p.servicios.split(',').map(s => `<span style="background:rgba(94,28,46,0.1);padding:1px 6px;border-radius:3px;margin-right:4px;">${s.trim()}</span>`).join('') : ''}
+                            </div>
+                        </div>
+                        <div style="display:flex;gap:0.5rem;align-items:center;">
+                            <button onclick="togglePortafolioVisibilidad('${p.id}')"
+                                style="padding:0.35rem 0.65rem;font-size:0.75rem;border:1px solid ${p.activo === false ? '#16a34a' : '#dc2626'};background:${p.activo === false ? '#16a34a' : '#dc2626'};color:white;border-radius:4px;cursor:pointer;"
+                                title="${p.activo === false ? 'Mostrar' : 'Ocultar'}">
+                                ${p.activo === false ? '👁️ Mostrar' : '🙈 Ocultar'}
+                            </button>
+                            <button onclick="editarPortafolioProyecto('${p.id}')"
+                                style="padding:0.35rem 0.65rem;font-size:0.75rem;border:1px solid var(--color-taupe);background:var(--color-taupe);color:white;border-radius:4px;cursor:pointer;">
+                                ✏️ Editar
+                            </button>
+                            <button onclick="eliminarPortafolioProyecto('${p.id}')"
+                                style="padding:0.35rem 0.65rem;font-size:0.75rem;border:1px solid #ef4444;background:#ef4444;color:white;border-radius:4px;cursor:pointer;">
+                                🗑️
+                            </button>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    } catch (error) {
+        console.error('Error cargando portafolio:', error);
+        lista.innerHTML = `
+            <div class="no-results" style="text-align:center;padding:2rem;">
+                <h3>Error al cargar</h3>
+                <p>${error.message}</p>
+            </div>
+        `;
+    }
+}
+
+async function handlePortafolioSubmit(e) {
+    e.preventDefault();
+
+    const titulo = document.getElementById('portafolio-titulo').value.trim();
+    const artista = document.getElementById('portafolio-artista').value.trim();
+    const genero = document.getElementById('portafolio-genero').value.trim();
+    const anio = parseInt(document.getElementById('portafolio-anio').value) || null;
+    const orden = parseInt(document.getElementById('portafolio-orden').value) || 0;
+    const spotify = document.getElementById('portafolio-spotify').value.trim();
+    const coverArt = document.getElementById('portafolio-cover-art').value.trim();
+    const notas = document.getElementById('portafolio-notas').value.trim();
+    const activo = document.getElementById('portafolio-activo').checked;
+
+    // Obtener servicios seleccionados
+    const serviciosCheckboxes = document.querySelectorAll('input[name="portafolio-servicio"]:checked');
+    const servicios = Array.from(serviciosCheckboxes).map(cb => cb.value).join(', ');
+
+    if (!titulo || !artista) {
+        alert('Título y artista son obligatorios');
+        return;
+    }
+
+    const proyectoData = {
+        titulo,
+        artista,
+        genero,
+        anio,
+        orden,
+        servicios,
+        spotify_track_id: spotify || null,
+        cover_art: coverArt || null,
+        notas,
+        activo
+    };
+
+    try {
+        const { data, error } = await supabase.from('proyectos_musicales').insert(proyectoData);
+
+        if (error) throw error;
+
+        document.getElementById('portafolio-success').textContent = `✅ Proyecto "${titulo}" guardado exitosamente`;
+        document.getElementById('form-portafolio').reset();
+        document.getElementById('portafolio-activo').checked = true;
+
+        // Recargar lista
+        await cargarPortafolio();
+
+        setTimeout(() => {
+            document.getElementById('portafolio-success').textContent = '';
+        }, 3000);
+    } catch (error) {
+        console.error('Error guardando proyecto:', error);
+        alert('Error al guardar: ' + error.message);
+    }
+}
+
+async function togglePortafolioVisibilidad(id) {
+    try {
+        // Primero obtener el estado actual
+        const { data: proyecto } = await supabase.from('proyectos_musicales').select('activo').eq('id', id).single();
+
+        if (!proyecto) return;
+
+        const nuevoEstado = !proyecto.activo;
+
+        const { error } = await supabase.from('proyectos_musicales')
+            .update({ activo: nuevoEstado })
+            .eq('id', id);
+
+        if (error) throw error;
+
+        await cargarPortafolio();
+    } catch (error) {
+        console.error('Error actualizando visibilidad:', error);
+        alert('Error: ' + error.message);
+    }
+}
+
+let proyectoEditandoId = null;
+
+async function editarPortafolioProyecto(id) {
+    try {
+        const { data: proyecto, error } = await supabase.from('proyectos_musicales')
+            .select('*')
+            .eq('id', id)
+            .single();
+
+        if (error || !proyecto) throw error;
+
+        proyectoEditandoId = id;
+
+        // Llenar formulario
+        document.getElementById('portafolio-titulo').value = proyecto.titulo || '';
+        document.getElementById('portafolio-artista').value = proyecto.artista || '';
+        document.getElementById('portafolio-genero').value = proyecto.genero || '';
+        document.getElementById('portafolio-anio').value = proyecto.anio || '';
+        document.getElementById('portafolio-orden').value = proyecto.orden || 0;
+        document.getElementById('portafolio-spotify').value = proyecto.spotify_track_id || '';
+        document.getElementById('portafolio-cover-art').value = proyecto.cover_art || '';
+        document.getElementById('portafolio-notas').value = proyecto.notas || '';
+        document.getElementById('portafolio-activo').checked = proyecto.activo !== false;
+
+        // Desmarcar todos los checkboxes y marcar los que corresponden
+        document.querySelectorAll('input[name="portafolio-servicio"]').forEach(cb => {
+            cb.checked = false;
+        });
+
+        if (proyecto.servicios) {
+            const serviciosArray = proyecto.servicios.split(',').map(s => s.trim());
+            document.querySelectorAll('input[name="portafolio-servicio"]').forEach(cb => {
+                if (serviciosArray.includes(cb.value)) {
+                    cb.checked = true;
+                }
+            });
+        }
+
+        // Cambiar texto del botón
+        const submitBtn = document.querySelector('#form-portafolio button[type="submit"]');
+        submitBtn.textContent = '💾 Actualizar Proyecto';
+        submitBtn.style.background = '#c5b8aa';
+
+        // Scroll al formulario
+        document.getElementById('form-portafolio').scrollIntoView({ behavior: 'smooth' });
+
+        // Agregar botón de cancelar edición
+        const existingCancel = document.getElementById('btn-cancelar-edicion-portafolio');
+        if (!existingCancel) {
+            const cancelBtn = document.createElement('button');
+            cancelBtn.type = 'button';
+            cancelBtn.id = 'btn-cancelar-edicion-portafolio';
+            cancelBtn.textContent = '❌ Cancelar edición';
+            cancelBtn.style.cssText = 'width:100%;padding:0.75rem;margin-top:0.5rem;background:#6b7280;color:white;border:none;border-radius:6px;cursor:pointer;font-size:0.85rem;';
+            cancelBtn.onclick = cancelarEdicionPortafolio;
+            submitBtn.parentNode.insertBefore(cancelBtn, submitBtn.nextSibling);
+        }
+
+    } catch (error) {
+        console.error('Error cargando proyecto para editar:', error);
+        alert('Error: ' + error.message);
+    }
+}
+
+function cancelarEdicionPortafolio() {
+    proyectoEditandoId = null;
+
+    document.getElementById('form-portafolio').reset();
+    document.getElementById('portafolio-activo').checked = true;
+
+    const submitBtn = document.querySelector('#form-portafolio button[type="submit"]');
+    submitBtn.textContent = '➕ Guardar Proyecto Musical';
+    submitBtn.style.background = '';
+
+    const cancelBtn = document.getElementById('btn-cancelar-edicion-portafolio');
+    if (cancelBtn) cancelBtn.remove();
+
+    document.getElementById('portafolio-success').textContent = '';
+}
+
+async function eliminarPortafolioProyecto(id) {
+    if (!confirm('¿Estás seguro de que querés eliminar este proyecto del portafolio? Esta acción no se puede deshacer.')) {
+        return;
+    }
+
+    try {
+        const { error } = await supabase.from('proyectos_musicales').delete().eq('id', id);
+
+        if (error) throw error;
+
+        await cargarPortafolio();
+
+        // Si estábamos editando este proyecto, cancelar edición
+        if (proyectoEditandoId === id) {
+            cancelarEdicionPortafolio();
+        }
+    } catch (error) {
+        console.error('Error eliminando proyecto:', error);
+        alert('Error: ' + error.message);
+    }
+}
+
+// Setup para búsqueda en portafolio
+function setupPortafolioSearch() {
+    const buscador = document.getElementById('buscador-portafolio');
+    if (buscador) {
+        buscador.addEventListener('input', () => {
+            clearTimeout(window.portafolioSearchTimeout);
+            window.portafolioSearchTimeout = setTimeout(cargarPortafolio, 300);
+        });
     }
 }

@@ -68,6 +68,9 @@
                 <button class="nav-item" data-section="proyectos">
                     <span class="icon">📁</span> Proyectos
                 </button>
+                <button class="nav-item" data-section="portafolio">
+                    <span class="icon">🎵</span> Portafolio Musical
+                </button>
                 <button class="nav-item" data-section="deudas">
                     <span class="icon">💳</span> Deudas
                 </button>
@@ -490,6 +493,144 @@
                 </div>
             </section>
 
+            <!-- Portafolio Musical Section -->
+            <section id="section-portafolio" class="section">
+                <div class="section-header">
+                    <div class="section-tag">Catálogo Público</div>
+                    <div class="section-title-row">
+                        <h1>Portafolio Musical</h1>
+                        <img src="img/isotipo-vinotinto.png" alt="Dieco Mancipe" class="section-isotipo">
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>📊 Proyectos en el Catálogo</h3>
+                    <div class="portafolio-stats" style="display:flex;gap:1.5rem;margin-bottom:1rem;flex-wrap:wrap;">
+                        <div style="background:rgba(94,28,46,0.1);padding:0.75rem 1rem;border-radius:6px;">
+                            <div style="font-size:0.75rem;color:var(--color-primary);font-weight:600;">TOTALES</div>
+                            <div style="font-size:1.5rem;font-family:'Cormorant Garamond';font-weight:700;" id="portafolio-total">0</div>
+                        </div>
+                        <div style="background:rgba(34,197,94,0.1);padding:0.75rem 1rem;border-radius:6px;">
+                            <div style="font-size:0.75rem;color:#16a34a;font-weight:600;">VISibles</div>
+                            <div style="font-size:1.5rem;font-family:'Cormorant Garamond';font-weight:700;" id="portafolio-visibles">0</div>
+                        </div>
+                        <div style="background:rgba(239,68,68,0.1);padding:0.75rem 1rem;border-radius:6px;">
+                            <div style="font-size:0.75rem;color:#dc2626;font-weight:600;">OCULTOS</div>
+                            <div style="font-size:1.5rem;font-family:'Cormorant Garamond';font-weight:700;" id="portafolio-ocultos">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top:1.5rem;">
+                    <h3>🎵 Proyectos Registrados</h3>
+                    <div class="filtros-container" style="display:flex;gap:0.75rem;margin-bottom:1rem;flex-wrap:wrap;">
+                        <div style="flex:1;min-width:150px;">
+                            <input type="text" id="buscador-portafolio" placeholder="🔍 Buscar por título o artista..."
+                                style="width:100%;padding:0.5rem;border:1px solid rgba(94,28,46,0.3);border-radius:4px;font-size:0.85rem;">
+                        </div>
+                        <div>
+                            <select id="filtro-estado-portafolio" onchange="cargarPortafolio()"
+                                style="padding:0.5rem;border:1px solid rgba(94,28,46,0.3);border-radius:4px;font-size:0.85rem;">
+                                <option value="todos">Todos los estados</option>
+                                <option value="visibles">Solo visibles</option>
+                                <option value="ocultos">Solo ocultos</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="lista-portafolio"></div>
+                </div>
+
+                <div class="card" style="margin-top: 2rem;">
+                    <h3>➕ Nuevo Proyecto Musical</h3>
+                    <form id="form-portafolio" class="form-card">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="portafolio-titulo">Título del Proyecto *</label>
+                                <input type="text" id="portafolio-titulo" required placeholder="Ej: La Chisma - DMB">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="portafolio-artista">Artista / Agrupación *</label>
+                                <input type="text" id="portafolio-artista" required placeholder="Ej: DMB">
+                            </div>
+                            <div class="form-group">
+                                <label for="portafolio-genero">Género</label>
+                                <input type="text" id="portafolio-genero" placeholder="Ej: Rock, Pop, Urbano">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="portafolio-anio">Año de lanzamiento</label>
+                                <input type="number" id="portafolio-anio" min="1900" max="2100" placeholder="Ej: 2025">
+                            </div>
+                            <div class="form-group">
+                                <label for="portafolio-orden">Orden de visualización</label>
+                                <input type="number" id="portafolio-orden" min="0" value="0" placeholder="Menor = más arriba">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="portafolio-servicios">Servicios prestados *</label>
+                            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax:150px,1fr);gap:0.5rem;margin-top:0.5rem;">
+                                <label style="display:flex;align-items:center;gap:0.5rem;font-weight:400;">
+                                    <input type="checkbox" name="portafolio-servicio" value="Producción"> Producción
+                                </label>
+                                <label style="display:flex;align-items:center;gap:0.5rem;font-weight:400;">
+                                    <input type="checkbox" name="portafolio-servicio" value="Grabación"> Grabación
+                                </label>
+                                <label style="display:flex;align-items:center;gap:0.5rem;font-weight:400;">
+                                    <input type="checkbox" name="portafolio-servicio" value="Mezcla"> Mezcla
+                                </label>
+                                <label style="display:flex;align-items:center;gap:0.5rem;font-weight:400;">
+                                    <input type="checkbox" name="portafolio-servicio" value="Masterización"> Masterización
+                                </label>
+                                <label style="display:flex;align-items:center;gap:0.5rem;font-weight:400;">
+                                    <input type="checkbox" name="portafolio-servicio" value="Ingeniero de Grabación"> Ingeniero de Grabación
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="portafolio-spotify">Spotify Track ID (opcional)</label>
+                                <input type="text" id="portafolio-spotify" placeholder="Ej: 4cOdK2wGLETKBW3PvgPWqT">
+                                <small style="display:block;margin-top:0.25rem;color:var(--color-taupe);font-size:0.75rem;">
+                                    El ID es lo que va después de /track/ en la URL de Spotify
+                                </small>
+                            </div>
+                            <div class="form-group">
+                                <label for="portafolio-cover-art">Carátula (URL o nombre de archivo)</label>
+                                <input type="text" id="portafolio-cover-art" placeholder="Ej: mi-caratula.jpg">
+                                <small style="display:block;margin-top:0.25rem;color:var(--color-taupe);font-size:0.75rem;">
+                                    Subí la imagen a la carpeta cover-arts y poné el nombre aquí
+                                </small>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="portafolio-notas">Notas adicionales</label>
+                            <textarea id="portafolio-notas" rows="3" placeholder="Detalles adicionales del proyecto..."></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label style="display:flex;align-items:center;gap:0.5rem;font-weight:600;">
+                                <input type="checkbox" id="portafolio-activo" checked>
+                                Mostrar en el catálogo público
+                            </label>
+                            <small style="display:block;margin-top:0.25rem;color:var(--color-taupe);font-size:0.75rem;">
+                                Desmarcá esta opción si querés guardar el proyecto pero no mostrarlo aún
+                            </small>
+                        </div>
+
+                        <button type="submit" class="btn-primary btn-full">Guardar Proyecto Musical</button>
+                        <div id="portafolio-success" class="success-message"></div>
+                    </form>
+                </div>
+            </section>
+
             <!-- Deudas Section -->
             <section id="section-deudas" class="section">
                 <div class="section-header">
@@ -703,7 +844,7 @@
         </div>
     </div>
 
-    <script src="pdf-generator.js?v=20260506"></script>
-    <script type="module" src="app.js?v=20260506"></script>
+    <script src="pdf-generator.js?v=20260604"></script>
+    <script type="module" src="app.js?v=20260604"></script>
 </body>
 </html>
